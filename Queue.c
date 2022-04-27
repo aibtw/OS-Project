@@ -116,7 +116,7 @@ Car* Qpeek(){
 Car** Qiterator(int *sz){
 	*sz = Q.count;
 	for(int i = 0; i < Q.count; i++){
-		Q.list[i * sizeof(Car)] = Q.data[(Q.tail+i)%Q.capacity * sizeof(Car)];
+		Q.list[i * sizeof(Car)] = Q.data[(Q.head+i)%Q.capacity * sizeof(Car)];
 	}
 	return Q.list;
 }
