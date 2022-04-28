@@ -80,11 +80,13 @@ void Qclear(){
  * =============================================================================
  */
 void Qenqueue(Car *car){
-	assert(!QisFull());
-	Q.data[Q.tail * sizeof(Car)] = car;
-	//*(Q.data + sizeof(Car) * Q.tail) = car;
-	Q.count += 1;
-	Q.tail  = (Q.tail + 1) % Q.capacity;
+	//assert(!QisFull());
+	if(!QisFull()){	
+		Q.data[Q.tail] = car;
+		//*(Q.data + sizeof(Car) * Q.tail) = car;
+		Q.count += 1;
+		Q.tail  = (Q.tail + 1) % Q.capacity;
+	}
 }
 
 /* ===========================================================================
@@ -98,7 +100,8 @@ Car* Qserve(){
 	int temp = Q.head;
 	Q.head = (Q.head + 1) % Q.capacity;	
 	Q.count -= 1;
-	return *(Q.data + sizeof(Car) * temp);
+	//return *(Q.data + sizeof(Car) * temp);
+	return Q.data[temp];
 }
 
 /* ===========================================================================
@@ -106,7 +109,8 @@ Car* Qserve(){
  * ===========================================================================
  */
 Car* Qpeek(){
-	return *(Q.data + sizeof(Car) * Q.head);
+	//return *(Q.data + sizeof(Car) * Q.head);
+	return Q.data[Q.head];
 }
 
 /* ===========================================================================
@@ -114,9 +118,14 @@ Car* Qpeek(){
  * ===========================================================================
  */
 Car** Qiterator(int *sz){
+	if(QisEmpty()) return NULL;
+
+	free(Q.list);
+	Q.list = malloc(sizeof(Car) * Q.count);
 	*sz = Q.count;
+
 	for(int i = 0; i < Q.count; i++){
-		Q.list[i * sizeof(Car)] = Q.data[(Q.head+i)%Q.capacity * sizeof(Car)];
+		Q.list[i] = Q.data[(Q.head+i)%Q.capacity];
 	}
 	return Q.list;
 }
@@ -142,7 +151,7 @@ int Qsize(){
  * ===========================================================================
  */
 bool QisFull(){
-	return (Q.count == Q.capacity);
+	return (Q.count >= Q.capacity);
 }
 
 /* ===========================================================================

@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-c -std=gnu11 -O
+CFLAGS=-c -std=gnu11 -O -g
 LIBS= -lSDL_bgi -l SDL2 -pthread -lm
 
 all: cp

@@ -1,26 +1,36 @@
 #include<stdio.h>
+#include<stdlib.h>
 #include<time.h>
 //#include"Queue.h"
 #include<unistd.h>
+#include<string.h>
 #include"CarPark.h"
-// No need for car.h, it is included in queue.h
 
+pthread_mutex_t plk;
+Car **park;
 
 int main(int argc, char argv[]){
+	pthread_mutex_init(&plk, NULL);
+
 	// initialize the queue
-	
 	Qinit(5);
-	int i = 0;
-	
-	
+
+	// Initialize GUI
+	double n;
+	park = malloc(sizeof(Car)*PARK_SIZE);
+	G2DInit(park, PARK_SIZE, 5, 2, plk);
+
 	// Create i cars
-	for(i=0;i<5;){
+	int c = 5;
+	for(int i=0;i<c;){
 		Car *temp = malloc(sizeof(Car));
 		CarInit(temp);		
 		updateStats(0, ++i, 0, 0, 0, 0, 0, 0);
 		printf("Car created, ID = %d\n", (*temp).cid);
 		Qenqueue(temp);
 	}
+	Car *toPark = Qserve();
+	park[0] = toPark;	
 	
 	// Testing Queue.c
 	printf("Peeked Car, ID = %d\n", Qpeek()->cid);
@@ -30,26 +40,22 @@ int main(int argc, char argv[]){
 	
 	// Testing iterator() function
 	int *list_size = malloc(sizeof(int));
-	Car **waiting = malloc(sizeof(Car)*(*list_size));
+	Car **waiting = malloc(sizeof(Car)*c);
  	waiting = Qiterator(list_size);
 	printf("Size of list: %d\n", *list_size);
-	printf("Last ID: %d\n", waiting[sizeof(Car)*(*list_size-1)]->cid);
-	
-	// Testing GUI
-	double n;
-	pthread_mutex_t plk;
-	//pthread_mutex_t plk = PTHREAD_MUTEX_INITIALIZER;
-	Car **park = malloc(sizeof(Car)*PARK_SIZE);
- 	
-	G2DInit(park, 16, 5, 2, plk);
+	printf("First  ID: %d\n", waiting[0]->cid);
+	printf("Second ID: %d\n", waiting[1]->cid);
+	printf("Third  ID: %d\n", waiting[2]->cid);
+	printf("Forth  ID: %d\n", waiting[3]->cid);
+	//printf("Fifth  ID: %d\n", waiting[sizeof(Car)*4]->cid);
+	usleep(5000);
 	while(true){
-	//	n = newCars(0.5);
+		n = newCars(0.5);
 		show();
-	//	printf("Number of new cars: %f\n",n);
-		usleep(10);
+		printf("Number of new cars: %f\n",n);
+		sleep(1);
 	}
 
 	usleep(1000000);
 	Qfree();
 }
-
