@@ -8,17 +8,39 @@
 pthread_mutex_t plk;
 Car **park;
 
-int main(int argc, char argv[]){
+// Statistical variables
+int oc, nc, pk, rf, nm, sqw, spt, ut;  		// oc: Total Occupied,
+						// nc: Total created,
+						// pk: total parked, 
+						// rf: total refused
+						// nm: Currently Aquired by in-valets
+						// sqw: sum of car waiting times in arrival queue
+						// spt: sum of car parking times
+						// ut: current park utilization
+
+// input variables
+int psize, inval, outval, qsize, expnum;	// psize: Park Capacity
+						// inval: nubmer of in-valets
+						// outval: number of out-valets
+						// qsize: capacity of arrival queue
+						// expnum: expected number of arrivals
+
+
+int in_valets();
+
+int main(int argc, char *argv[]){
 	pthread_mutex_init(&plk, NULL);		// used by G2DInit
 
 	// initialize the queue
 	Qinit(5);
-
+	
 	// Initialize GUI
 	double n;
 	park = malloc(sizeof(Car)*PARK_SIZE);	// This will serve as park space
 	G2DInit(park, PARK_SIZE, IN_VALETS, OUT_VALETS, plk);	// initialize graphics
 	// Note, IN_VALETS and OUT_VALETS are the default values defined in CarPark.h
+	
+	
 	
 	// Create cars and show the graphics
 	usleep(5000);
