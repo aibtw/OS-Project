@@ -47,12 +47,11 @@ bool QisEmpty();
  * =============================================================================
  */
 void Qinit(int n){
-	Q.capacity = n;	
-	Q.count = 0;
+	Q.capacity = n;		// Initialize Capacity
+	Q.count = 0;		// Initialize count, head, and tail = 0
 	Q.head = 0;
 	Q.tail = 0;
-	Q.data = malloc(sizeof(Car) * n);
-	Q.list = malloc(sizeof(Car) * n);
+	Q.data = malloc(sizeof(Car) * n);	// Allocate memory to data(Size of n cars)
 }
 
 /* =============================================================================
@@ -69,6 +68,7 @@ void Qfree(){
  * =============================================================================
  */
 void Qclear(){
+	// Return array pointers to their initialization values.
 	Q.count = 0;
 	Q.head = 0;
 	Q.tail = 0;
@@ -80,10 +80,8 @@ void Qclear(){
  * =============================================================================
  */
 void Qenqueue(Car *car){
-	//assert(!QisFull());
 	if(!QisFull()){	
 		Q.data[Q.tail] = car;
-		//*(Q.data + sizeof(Car) * Q.tail) = car;
 		Q.count += 1;
 		Q.tail  = (Q.tail + 1) % Q.capacity;
 	}
@@ -96,11 +94,12 @@ void Qenqueue(Car *car){
  * ===========================================================================
  */
 Car* Qserve(){
-	assert(!QisEmpty());
+	if(QisEmpty())
+		return NULL;
+	
 	int temp = Q.head;
 	Q.head = (Q.head + 1) % Q.capacity;	
 	Q.count -= 1;
-	//return *(Q.data + sizeof(Car) * temp);
 	return Q.data[temp];
 }
 
@@ -109,7 +108,9 @@ Car* Qserve(){
  * ===========================================================================
  */
 Car* Qpeek(){
-	//return *(Q.data + sizeof(Car) * Q.head);
+	if(QisEmpty())
+		return NULL;
+
 	return Q.data[Q.head];
 }
 
@@ -118,14 +119,17 @@ Car* Qpeek(){
  * ===========================================================================
  */
 Car** Qiterator(int *sz){
-	if(QisEmpty()) return NULL;
+	if(QisEmpty()) 
+		return NULL;
 
-	free(Q.list);
-	Q.list = malloc(sizeof(Car) * Q.count);
+	free(Q.list);				// To prevent memory leak then
+	Q.list = malloc(sizeof(Car) * Q.count);	// we must allocate memory again.
 	*sz = Q.count;
 
+	// Copy the (**data) contents to (**list). 
+	// starting from data[head] to data[tail].
 	for(int i = 0; i < Q.count; i++){
-		Q.list[i] = Q.data[(Q.head+i)%Q.capacity];
+		Q.list[i] = Q.data[(Q.head+i)%Q.capacity]; // Using % to wrap-around
 	}
 	return Q.list;
 }
