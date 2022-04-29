@@ -5,8 +5,15 @@
 #include<string.h>
 #include"CarPark.h"
 
-pthread_mutex_t plk;
-Car **park;
+
+
+// Define limits that were not defined in CarPark.h
+#define PARK_MLIMIT	12			// minimum park size
+#define VALET_MLIMIT 	1			// minimim number of valets
+#define QUEUE_MLIMIT 	3			// minimum queue size
+#define EXP_LIMIT	1.50			// maximum expected number of in-coming cars
+#define EXP_MLIMIT	0.01			// minimum expected number of in-coming cars
+
 
 // Statistical variables
 int oc, nc, pk, rf, nm, sqw, spt, ut;  		// oc: Total Occupied,
@@ -19,23 +26,89 @@ int oc, nc, pk, rf, nm, sqw, spt, ut;  		// oc: Total Occupied,
 						// ut: current park utilization
 
 // input variables
-int psize, inval, outval, qsize, expnum;	// psize: Park Capacity
+int psize, inval, outval, qsize;		// psize: Park Capacity
 						// inval: nubmer of in-valets
 						// outval: number of out-valets
 						// qsize: capacity of arrival queue
-						// expnum: expected number of arrivals
+float expnum;					// expnum: expected number of arrivals
+
+
+pthread_mutex_t plk;
+Car **park;
 
 
 int in_valets();
 
+
 int main(int argc, char *argv[]){
-	pthread_mutex_init(&plk, NULL);		// used by G2DInit
+	// initialization of inputs to default values
+	psize = PARK_SIZE;
+	inval = IN_VALETS;
+	outval = OUT_VALETS;
+	qsize = QUEUE_SIZE;
+	expnum = EXP_CARS;
+	int temp_in;
+	
+	// Input Handling
+	if (argc > 1)
+	{
+		temp_in = atoi(argv[1]);
+		if (temp_in > PARK_LIMIT)
+			psize = PARK_LIMIT;
+		else if (temp_in < PARK_LIMIT)
+			psize = PARK_MLIMIT;
+		else
+			psize = temp_in;
+	}
+	if (argc > 2)
+	{
+		temp_in = atoi(argv[2]);
+		if (temp_in > VALET_LIMIT)
+			inval = VALET_LIMIT;
+		else if (temp_in < VALET_MLIMIT)
+			inval = VALET_MLIMIT;
+		else
+			inval = temp_in;
+	}
+	if (argc > 3)
+	{
+		temp_in = atoi(argv[3]);
+		if (temp_in > VALET_LIMIT)
+			outval = VALET_LIMIT;
+		else if (temp_in < VALET_MLIMIT)
+			outval = VALET_MLIMIT;
+		else
+			outval = temp_in;
+	}
+	if (argc > 4)
+	{
+		temp_in = atoi(argv[4]);
+		if (temp_in > QUEUE_LIMIT)
+			outval = QUEUE_LIMIT;
+		else if (temp_in < QUEUE_MLIMIT)
+			outval = QUEUE_MLIMIT;
+		else
+			outval = temp_in;
+	}
+	if (argc > 5)
+	{
+		temp_in = atof(argv[5]);
+		if (temp_in > EXP_LIMIT)
+			psize = EXP_LIMIT;
+		else if (temp_in < EXP_MLIMIT)
+			psize = EXP_MLIMIT;
+		else
+			psize = temp_in;
+	}
+	
+	
 
 	// initialize the queue
 	Qinit(5);
 	
 	// Initialize GUI
 	double n;
+	pthread_mutex_init(&plk, NULL);		// used by G2DInit
 	park = malloc(sizeof(Car)*PARK_SIZE);	// This will serve as park space
 	G2DInit(park, PARK_SIZE, IN_VALETS, OUT_VALETS, plk);	// initialize graphics
 	// Note, IN_VALETS and OUT_VALETS are the default values defined in CarPark.h
