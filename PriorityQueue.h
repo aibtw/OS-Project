@@ -1,6 +1,12 @@
 /*
- * PriorityQueue
+ * PriorityQueue.h
  *
+ * Header file for a priority queue structure using an array of
+ * Car-type elements stored in it.
+ *
+ * The priority of this queue is based on the waiting time of 
+ * each car which is defined as (parking time + stay time).
+ * 
  * Author Ahmed Patwa
  * Version 1.00 2022/04/30
  *
@@ -12,7 +18,8 @@
 #include "Car.h"		// Provides the required Car type structure
 
 /* =============================================================================
-	.......
+ * PQueue Structure has a data array, and a field for maximum capacity
+ * and a counter for number of elements in the queue.
  * =============================================================================
  */
 typedef struct PQueue_t {
@@ -58,7 +65,7 @@ void siftDown(int i);
  */
 void PQenqueue(Car *car);
 /* ===========================================================================
- * Unpark a car from the priority queue
+ * Unpark a car from the priority queue 
  * ===========================================================================
  */
 Car* PQserve();
