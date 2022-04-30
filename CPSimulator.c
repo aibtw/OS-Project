@@ -37,12 +37,10 @@ pthread_mutex_t plk;
 Car **park;
 
 
-int in_valets();
-
 void input_handler(int argc, char *argv[]);
 void initializer();
 
-
+// ========================================================================================================= //
 // Monitor thread: updates stats and displays the GUI.
 void *monitor(void *args){
 	while(true){
@@ -51,6 +49,21 @@ void *monitor(void *args){
 		usleep(100000);
 	}
 }
+
+// in valets
+void *in_valets_t(void *param){
+	int id = *(int *)param;	// Cast (void *) into (integer *), then get its value
+	printf("[in_valets] Thread created with id: %d\n", id);
+}
+
+// out valets
+void *out_valets_t(void *param){
+	int id = *(int *)param;	// Cast (void *) into (integer *), then get its value
+	printf("[out_valets] Thread created with id: %d\n", id);
+}
+
+
+// ========================================================================================================= //
 
 int main(int argc, char *argv[]){
 	// Initialize global variables to their default values.
@@ -70,9 +83,26 @@ int main(int argc, char *argv[]){
 	// Note, IN_VALETS and OUT_VALETS are the default values defined in CarPark.h
 	
 	// -------------------------------------------------------------------------------------------------- //
+	// Thread pools
+	pthread_t inv_tid[inval];
+	pthread_t outv_tid[outval];
+	int *j;
+	for(int i = 0; i<inval; i++){
+		j = malloc(sizeof(int));
+		*j = i;
+		pthread_create(&inv_tid[i], NULL, in_valets_t, j);
+	}
+	/*for(int i = 0; i<outval; i++){
+		j = malloc(sizeof(int));
+		*j = i;
+		pthread_create(&outv_tid[i], NULL, out_valets, i);
+	}
+	*/
 	// Monitor thread
 	pthread_t monitor_tid;
 	pthread_create(&monitor_tid, NULL, monitor, NULL);
+	
+	
 	// -------------------------------------------------------------------------------------------------- //
 	
 	// Create cars and show the graphics
