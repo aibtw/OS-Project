@@ -54,6 +54,9 @@ void *monitor(void *args){
 void *in_valets_t(void *param){
 	int id = *(int *)param;	// Cast (void *) into (integer *), then get its value
 	printf("[in_valets] Thread created with id: %d\n", id);
+	sleep(1); // should be random
+	
+	usleep(200000); // should be random
 }
 
 // out valets
@@ -73,14 +76,17 @@ int main(int argc, char *argv[]){
 	input_handler(argc, argv);
 	
 	// Initialize the queue
-	Qinit(5);
+	Qinit(qsize);
+	
+	printf("[main] Initialized!\n");
+	printf("[main] psize: %d, inval: %d, outval: %d, qsize: %d, expnum: %f\n", psize, inval, outval, qsize, expnum);
+	
 	
 	// Initialize GUI
 	double n;
-	pthread_mutex_init(&plk, NULL);		// used by G2DInit
-	park = malloc(sizeof(Car)*PARK_SIZE);	// This will serve as park space
-	G2DInit(park, PARK_SIZE, IN_VALETS, OUT_VALETS, plk);	// initialize graphics
-	// Note, IN_VALETS and OUT_VALETS are the default values defined in CarPark.h
+	pthread_mutex_init(&plk, NULL);			// used by G2DInit
+	park = malloc(sizeof(Car)*psize);		// This will serve as park space
+	G2DInit(park, psize, inval, outval, plk);	// initialize graphics
 	
 	// -------------------------------------------------------------------------------------------------- //
 	// Thread pools
@@ -88,7 +94,7 @@ int main(int argc, char *argv[]){
 	pthread_t outv_tid[outval];
 	int *j;
 	for(int i = 0; i<inval; i++){
-		j = malloc(sizeof(int));
+		j = malloc(sizeof(int));		// j will provide unique id to each valet
 		*j = i;
 		pthread_create(&inv_tid[i], NULL, in_valets_t, j);
 	}
@@ -107,13 +113,13 @@ int main(int argc, char *argv[]){
 	
 	// Create cars and show the graphics
 	usleep(5000);
-	int nc = 0; // Global cars counter. temporary, Fahad should take care of statistics later
+	Car *temp;
 	while(true){
 		n = newCars(0.5); // Get Poisson distributed number of cars (maybe 1, maybe 3, no one knows)
 		printf("Number of new cars: %f\n",n);
 		// Create n cars:
 		for(int i = 0; i<n; i++){
-			Car *temp = malloc(sizeof(Car));	// Allocate memory to Car pointer
+			temp = malloc(sizeof(Car));	// Allocate memory to Car pointer
 			CarInit(temp);				// Initialize car
 			++nc;					// increment number of created cars
 			printf("Car created, ID = %d\n", (*temp).cid);
@@ -129,6 +135,9 @@ int main(int argc, char *argv[]){
 
 	usleep(1000000);
 	Qfree();
+	free(park);
+	free(j);
+	free(temp);
 }
 
 
