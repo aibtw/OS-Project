@@ -2,6 +2,7 @@
 #include<stdlib.h>
 #include<time.h>
 #include<unistd.h>
+#include<signal.h>
 #include<string.h>
 #include"CarPark.h"
 
@@ -65,6 +66,13 @@ void *out_valets_t(void *param){
 	printf("[out_valets] Thread created with id: %d\n", id);
 }
 
+// Interrupt handler
+void int_handler(){
+	printf("Receiveed Inturrept! Exiting ... \n");
+	Qfree();
+	free(park);
+	exit(0);
+}
 
 // ========================================================================================================= //
 
@@ -88,6 +96,9 @@ int main(int argc, char *argv[]){
 	park = malloc(sizeof(Car)*psize);		// This will serve as park space
 	G2DInit(park, psize, inval, outval, plk);	// initialize graphics
 	
+	// Signaling
+	signal(SIGINT, int_handler);
+	
 	// -------------------------------------------------------------------------------------------------- //
 	// Thread pools
 	pthread_t inv_tid[inval];
@@ -104,6 +115,10 @@ int main(int argc, char *argv[]){
 		pthread_create(&outv_tid[i], NULL, out_valets, i);
 	}
 	*/
+	
+	usleep(100000);
+	free(j);
+	
 	// Monitor thread
 	pthread_t monitor_tid;
 	pthread_create(&monitor_tid, NULL, monitor, NULL);
@@ -127,18 +142,14 @@ int main(int argc, char *argv[]){
 				printf("Queue is full. Reject the car\n"); // Reject the car
 				rf++;				// increament number of rejected cars
 				free(c);
+				c = NULL;
 			}
 			else Qenqueue(c);			// Enqueue the car
 		}
+		
 		while(getchar() != '\n');			// wait for ENTER
 		//sleep(1);
 	}
-
-	usleep(1000000);
-	Qfree();
-	free(park);
-	free(j);
-	free(c);
 }
 
 
