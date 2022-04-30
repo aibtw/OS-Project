@@ -113,21 +113,22 @@ int main(int argc, char *argv[]){
 	
 	// Create cars and show the graphics
 	usleep(5000);
-	Car *temp;
+	Car *c;
 	while(true){
 		n = newCars(0.5); // Get Poisson distributed number of cars (maybe 1, maybe 3, no one knows)
 		printf("Number of new cars: %f\n",n);
 		// Create n cars:
 		for(int i = 0; i<n; i++){
-			temp = malloc(sizeof(Car));	// Allocate memory to Car pointer
-			CarInit(temp);				// Initialize car
+			c = malloc(sizeof(Car));	// Allocate memory to Car pointer
+			CarInit(c);				// Initialize car
 			++nc;					// increment number of created cars
-			printf("Car created, ID = %d\n", (*temp).cid);
+			printf("Car created, ID = %d\n", (*c).cid);
 			if(QisFull()){
 				printf("Queue is full. Reject the car\n"); // Reject the car
 				rf++;				// increament number of rejected cars
+				free(c);
 			}
-			else Qenqueue(temp);			// Enqueue the car
+			else Qenqueue(c);			// Enqueue the car
 		}
 		while(getchar() != '\n');			// wait for ENTER
 		//sleep(1);
@@ -137,7 +138,7 @@ int main(int argc, char *argv[]){
 	Qfree();
 	free(park);
 	free(j);
-	free(temp);
+	free(c);
 }
 
 
