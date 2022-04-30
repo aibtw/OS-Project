@@ -16,9 +16,9 @@
 
 
 // Statistical variables
-int oc, nc, pk, rf, nm, sqw, spt, ut;  		// oc: Total Occupied,
-						// nc: Total created,
-						// pk: total parked, 
+int oc, nc, pk, rf, nm, sqw, spt, ut;  		// oc: Number of Occupied slots
+						// nc: Total created
+						// pk: total parked
 						// rf: total refused
 						// nm: Currently Aquired by in-valets
 						// sqw: sum of car waiting times in arrival queue
@@ -39,14 +39,84 @@ Car **park;
 
 int in_valets();
 
+void input_handler(int argc, char *argv[]);
+void initializer();
+
+
+// Monitor thread: updates stats and displays the GUI.
+void *monitor(void *args){
+	while(true){
+		updateStats(oc, nc, pk, rf, nm, sqw, spt, ut);
+		show();
+		usleep(100000);
+	}
+}
 
 int main(int argc, char *argv[]){
+	// Initialize global variables to their default values.
+	initializer();
+	
+	// Handle command line inputs
+	input_handler(argc, argv);
+	
+	// Initialize the queue
+	Qinit(5);
+	
+	// Initialize GUI
+	double n;
+	pthread_mutex_init(&plk, NULL);		// used by G2DInit
+	park = malloc(sizeof(Car)*PARK_SIZE);	// This will serve as park space
+	G2DInit(park, PARK_SIZE, IN_VALETS, OUT_VALETS, plk);	// initialize graphics
+	// Note, IN_VALETS and OUT_VALETS are the default values defined in CarPark.h
+	
+	// -------------------------------------------------------------------------------------------------- //
+	// Monitor thread
+	pthread_t monitor_tid;
+	pthread_create(&monitor_tid, NULL, monitor, NULL);
+	// -------------------------------------------------------------------------------------------------- //
+	
+	// Create cars and show the graphics
+	usleep(5000);
+	int nc = 0; // Global cars counter. temporary, Fahad should take care of statistics later
+	while(true){
+		n = newCars(0.5); // Get Poisson distributed number of cars (maybe 1, maybe 3, no one knows)
+		printf("Number of new cars: %f\n",n);
+		// Create n cars:
+		for(int i = 0; i<n; i++){
+			Car *temp = malloc(sizeof(Car));	// Allocate memory to Car pointer
+			CarInit(temp);				// Initialize car
+			++nc;					// increment number of created cars
+			printf("Car created, ID = %d\n", (*temp).cid);
+			if(QisFull()){
+				printf("Queue is full. Reject the car\n"); // Reject the car
+				rf++;				// increament number of rejected cars
+			}
+			else Qenqueue(temp);			// Enqueue the car
+		}
+		while(getchar() != '\n');			// wait for ENTER
+		//sleep(1);
+	}
+
+	usleep(1000000);
+	Qfree();
+}
+
+
+// ========================================================================================================= //
+
+
+void initializer(){
 	// initialization of inputs to default values
 	psize = PARK_SIZE;
 	inval = IN_VALETS;
 	outval = OUT_VALETS;
 	qsize = QUEUE_SIZE;
 	expnum = EXP_CARS;
+	oc = 0, nc = 0, pk = 0, rf = 0, nm = 0, sqw = 0, spt = 0, ut = 0;
+}
+
+
+void input_handler(int argc, char *argv[]){
 	int temp_in;
 	
 	// Input Handling
@@ -100,43 +170,7 @@ int main(int argc, char *argv[]){
 		else
 			psize = temp_in;
 	}
-	
-	
-
-	// initialize the queue
-	Qinit(5);
-	
-	// Initialize GUI
-	double n;
-	pthread_mutex_init(&plk, NULL);		// used by G2DInit
-	park = malloc(sizeof(Car)*PARK_SIZE);	// This will serve as park space
-	G2DInit(park, PARK_SIZE, IN_VALETS, OUT_VALETS, plk);	// initialize graphics
-	// Note, IN_VALETS and OUT_VALETS are the default values defined in CarPark.h
-	
-	
-	
-	// Create cars and show the graphics
-	usleep(5000);
-	int j = 1; // Global cars counter. temporary, Fahad should take care of statistics later
-	while(true){
-		n = newCars(0.5); // Get Poisson distributed number of cars (maybe 1, maybe 3, no one knows)
-		printf("Number of new cars: %f\n",n);
-		// Create n cars:
-		for(int i = 0; i<n; i++){
-			Car *temp = malloc(sizeof(Car));	// Allocate memory to Car pointer
-			CarInit(temp);				// Initialize car
-			updateStats(0, j++, 0, 0, 0, 0, 0, 0);	// temporary. Take care of all other stats later
-			printf("Car created, ID = %d\n", (*temp).cid);
-			if(QisFull()){
-				printf("Queue is full. Reject the car\n"); // Reject the car
-			}
-			else Qenqueue(temp);			// Enqueue the car
-		}
-		show();						// Show the graphics
-		while(getchar() != '\n');			// wait for ENTER
-		//sleep(1);
-	}
-
-	usleep(1000000);
-	Qfree();
 }
+
+
+
