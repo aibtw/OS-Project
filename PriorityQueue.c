@@ -78,16 +78,18 @@ void swap(Car *a, Car *b) {
  */
 void siftUp(int i)
 {
-	int parent = (i-1)/2;
-	double parent_p = PQ.data[parent]->ltm + PQ.data[parent]->ptm;
-	double i_p = PQ.data[i]->ltm + PQ.data[i]->ptm;
-	
-	if(i > 0 && parent_p < i_p) {
-		// Swap parent and current node
-		swap(PQ.data[parent], PQ.data[i]);
-		// Update i to parent of i
-		i = parent;
-		siftUp(i);
+	if(i > 0){
+		int parent = (int) ((i-1)/2);
+		double parent_p = PQ.data[parent]->ltm + PQ.data[parent]->ptm;
+		double i_p = PQ.data[i]->ltm + PQ.data[i]->ptm;
+		
+		if(parent_p < i_p) {
+			// Swap parent and current node
+			swap(PQ.data[parent], PQ.data[i]);
+			// Update i to parent of i
+			i = parent;
+			siftUp(i);
+		}
 	}
 }
 
@@ -131,10 +133,11 @@ void siftDown(int i)
  * =============================================================================
  */
 void PQenqueue(Car *car){
+	
 	if(!PQisFull()){
 		PQ.data[PQ.count] = car;
-		PQ.count += 1;
 		siftUp(PQ.count);
+		PQ.count += 1;
 	}
 }
 
