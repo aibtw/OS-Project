@@ -55,9 +55,23 @@ void *monitor(void *args){
 void *in_valets_t(void *param){
 	int id = *(int *)param;	// Cast (void *) into (integer *), then get its value
 	printf("[in_valets] Thread created with id: %d\n", id);
-	sleep(1); // should be random
 	
-	usleep(200000); // should be random
+	while(true){
+		// fetch a car from the queue to the park
+		if(!QisEmpty()){
+			Car *c = Qserve();
+			sqw += time(NULL) - c->atm;
+			printf("%d\n", sqw);
+			c->vid = id;
+			nm++;
+			sleep(1); // should be random
+			c->ptm = time(NULL);
+			// park
+			
+		}
+		usleep(200000); // should be random
+	}
+
 }
 
 // out valets
@@ -75,7 +89,7 @@ void int_handler(){
 }
 
 // ========================================================================================================= //
-
+  
 int main(int argc, char *argv[]){
 	// Initialize global variables to their default values.
 	initializer();
@@ -145,6 +159,11 @@ int main(int argc, char *argv[]){
 				c = NULL;
 			}
 			else Qenqueue(c);			// Enqueue the car
+			
+			// NOTE: I think we shouldn't update stats here, but it is necessary (otherwise
+			// duplicate id will be given). So, i guess we must have a lock at ++rf so that 
+			// it only increments if updateStates is done. 
+			updateStats(oc, nc, pk, rf, nm, sqw, spt, ut);
 		}
 		
 		while(getchar() != '\n');			// wait for ENTER
