@@ -4,8 +4,9 @@
 #include<unistd.h>
 #include<signal.h>
 #include<string.h>
-#include"CarPark.h"
 
+#include"CarPark.h"
+#include"PriorityQueue.h"
 
 
 // Define limits that were not defined in CarPark.h
@@ -35,7 +36,6 @@ float expnum;					// expnum: expected number of arrivals
 
 
 pthread_mutex_t plk;
-Car **park;
 
 
 void input_handler(int argc, char *argv[]);
@@ -61,13 +61,11 @@ void *in_valets_t(void *param){
 		if(!QisEmpty()){
 			Car *c = Qserve();
 			sqw += time(NULL) - c->atm;
-			printf("%d\n", sqw);
 			c->vid = id;
 			nm++;
 			sleep(1); // should be random
 			c->ptm = time(NULL);
-			// park
-			
+			PQenqueue(c);
 		}
 		usleep(200000); // should be random
 	}
@@ -84,7 +82,7 @@ void *out_valets_t(void *param){
 void int_handler(){
 	printf("Receiveed Inturrept! Exiting ... \n");
 	Qfree();
-	free(park);
+	PQfree();
 	exit(0);
 }
 
@@ -100,6 +98,9 @@ int main(int argc, char *argv[]){
 	// Initialize the queue
 	Qinit(qsize);
 	
+	// Initialize the park
+	PQinit(psize);
+	
 	printf("[main] Initialized!\n");
 	printf("[main] psize: %d, inval: %d, outval: %d, qsize: %d, expnum: %f\n", psize, inval, outval, qsize, expnum);
 	
@@ -107,8 +108,7 @@ int main(int argc, char *argv[]){
 	// Initialize GUI
 	double n;
 	pthread_mutex_init(&plk, NULL);			// used by G2DInit
-	park = malloc(sizeof(Car)*psize);		// This will serve as park space
-	G2DInit(park, psize, inval, outval, plk);	// initialize graphics
+	G2DInit(PQ.data, psize, inval, outval, plk);	// initialize graphics
 	
 	// Signaling
 	signal(SIGINT, int_handler);
@@ -168,6 +168,7 @@ int main(int argc, char *argv[]){
 		
 		while(getchar() != '\n');			// wait for ENTER
 		//sleep(1);
+		//usleep(250000);
 	}
 }
 
