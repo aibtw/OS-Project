@@ -18,6 +18,26 @@
 #include <assert.h>
 #include "Car.h"		// Provides the required Car type structure
 
+/* =============================================================================
+ * FIFO Queue struct holds the queue array and its standard field variables.
+ * To implement this queue write the standard queue operations with signatures
+ * as listed below. [Qinit(), Qfree(), Qenqueue(), Qserve(), Qpeek(), Qsize(),
+ * Qcapacity(), Qclear(), QisEmpty(), and QisFull()].
+ *
+ * Also use the extra field "list" to write function [Qiterator] that returns
+ * a list used to traverse all the elements of the queue starting at the head
+ * and ending at the tail without changing the state of the queue.
+ * =============================================================================
+ */
+typedef struct Queue_t {
+    Car **data;       		// Array to hold car queue
+	Car **list;				// Array to hold car list
+    int capacity;      		// The array (queue) capacity
+    int count;              // Number of cars currently in the queue
+    int tail;             	// The queue tail position
+    int head;            	// The queue head position
+} Queue;
+
 Queue Q;			// Global Queue variable
 
 bool QisFull();
