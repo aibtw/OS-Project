@@ -15,7 +15,6 @@
 #include <pthread.h>		// Provides thread-safe mutex lock
 #include <stdbool.h>        	// Provides boolean data type
 #include <stdlib.h>
-#include <assert.h>
 #include "Car.h"		// Provides the required Car type structure
 
 /* =============================================================================
