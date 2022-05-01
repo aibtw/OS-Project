@@ -37,9 +37,9 @@ float expnum;					// expnum: expected number of arrivals
 
 pthread_mutex_t plk;
 
-
-void input_handler(int argc, char *argv[]);
 void initializer();
+void input_handler(int argc, char *argv[]);
+int getRandom(int lower, int upper);
 
 // ========================================================================================================= //
 // Monitor thread: updates stats and displays the GUI.
@@ -57,17 +57,20 @@ void *in_valets_t(void *param){
 	printf("[in_valets] Thread created with id: %d\n", id);
 	
 	while(true){
+		usleep(1000); // NOTE: CONSIDER REMOVING (put a lock instead to avoid busy waiting)
 		// fetch a car from the queue to the park
 		if(!QisEmpty()){
+			// Critical Section Beginning
 			Car *c = Qserve();
+			usleep(getRandom(0,200000)); // pause in the critical section
 			sqw += time(NULL) - c->atm;
-			c->vid = id;
 			nm++;
-			sleep(1); // should be random
+			c->vid = id;
+			usleep(getRandom(0, 1000000)); // pause before parking
 			c->ptm = time(NULL);
 			PQenqueue(c);
+			usleep(getRandom(0, 1000000)); // pause before parking
 		}
-		usleep(200000); // should be random
 	}
 
 }
@@ -85,6 +88,13 @@ void int_handler(){
 	PQfree();
 	exit(0);
 }
+
+int getRandom(int lower, int upper) {
+	int num = (rand()%(upper-lower +1 )) + lower;
+	return num;
+	
+}
+
 
 // ========================================================================================================= //
   
@@ -184,6 +194,7 @@ void initializer(){
 	qsize = QUEUE_SIZE;
 	expnum = EXP_CARS;
 	oc = 0, nc = 0, pk = 0, rf = 0, nm = 0, sqw = 0, spt = 0, ut = 0;
+	srand(time(0));
 }
 
 
