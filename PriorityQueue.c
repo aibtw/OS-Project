@@ -15,11 +15,8 @@
 #include <pthread.h>		// Provides thread-safe mutex lock
 #include <stdbool.h>        	// Provides boolean data type
 #include <stdlib.h>
-#include "Car.h"		// Provides the required Car type structure
-
-
-bool PQisFull();
-bool PQisEmpty();
+#include <stdio.h>
+#include "Car.h"
 
 /* =============================================================================
  * PQueue Structure has a data array, and a field for maximum capacity
@@ -33,6 +30,9 @@ typedef struct PQueue_t {
 } PQueue;
 
 PQueue PQ;
+
+bool PQisFull();
+bool PQisEmpty();
 
 /* =============================================================================
  * Initialize the feilds of a Queue structure instance.
@@ -131,7 +131,7 @@ void siftDown(int i)
  * =============================================================================
  */
 void PQenqueue(Car *car){
-	if(!PQisFull()){	
+	if(!PQisFull()){
 		PQ.data[PQ.count] = car;
 		PQ.count += 1;
 		siftUp(PQ.count);

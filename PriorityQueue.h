@@ -11,11 +11,7 @@
  * Version 1.00 2022/04/30
  *
  */
-
-#include <pthread.h>		// Provides thread-safe mutex lock
-#include <stdbool.h>        	// Provides boolean data type
-#include <stdlib.h>
-#include "Car.h"		// Provides the required Car type structure
+ 
 
 /* =============================================================================
  * PQueue Structure has a data array, and a field for maximum capacity
@@ -28,6 +24,7 @@ typedef struct PQueue_t {
     int count;              	// Number of cars currently in the queue
 } PQueue;
 
+PQueue PQ;
 
 /* =============================================================================
  * Initialize the feilds of a Queue structure instance.
