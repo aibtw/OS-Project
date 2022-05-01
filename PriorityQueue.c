@@ -22,6 +22,19 @@ bool PQisFull();
 bool PQisEmpty();
 
 /* =============================================================================
+ * PQueue Structure has a data array, and a field for maximum capacity
+ * and a counter for number of elements in the queue.
+ * =============================================================================
+ */
+typedef struct PQueue_t {
+    Car **data;       		// Array to hold car queue
+    int capacity;      		// The array (queue) capacity
+    int count;              	// Number of cars currently in the queue
+} PQueue;
+
+PQueue PQ;
+
+/* =============================================================================
  * Initialize the feilds of a Queue structure instance.
  * =============================================================================
  */
@@ -43,10 +56,21 @@ void PQfree(){
  * Clear the Queue.
  * =============================================================================
  */
-void Qclear(){
+void PQclear(){
 	// Return array pointers to their initialization values.
 	PQ.count = 0;
 }
+
+/* =============================================================================
+ * swap two values in PQ.data.
+ * =============================================================================
+ */
+void swap(Car *a, Car *b) {
+  Car *temp = b;
+  b = a;
+  a = temp;
+}
+
 
 /* =============================================================================
  * Sifting up.
@@ -55,12 +79,12 @@ void Qclear(){
 void siftUp(int i)
 {
 	int parent = (i-1)/2;
-	double parent_p = PQ[parent]->ltm + PQ[parent]->ptm;
-	double i_p = PQ[i]->ltm + PQ[i]->ptm;
+	double parent_p = PQ.data[parent]->ltm + PQ.data[parent]->ptm;
+	double i_p = PQ.data[i]->ltm + PQ.data[i]->ptm;
 	
 	if(i > 0 && parent_p < i_p) {
 		// Swap parent and current node
-		swap(parent_p, i_p);
+		swap(PQ.data[parent], PQ.data[i]);
 		// Update i to parent of i
 		i = parent;
 		siftUp(i);
@@ -82,22 +106,22 @@ void siftDown(int i)
 	int r = 2 * i + 2;
 	
 	// priorities
-	i_p  = PQ[i]->ltm + PQ[i]->ptm  // current node priority
-	l_p  = PQ[l]->ltm + PQ[l]->ptm  // left node priority
-	r_p  = PQ[r]->ltm + PQ[r]->ptm  // right node priority
+	long i_p  = PQ.data[i]->ltm + PQ.data[i]->ptm;  // current node priority
+	long l_p  = PQ.data[l]->ltm + PQ.data[l]->ptm;  // left node priority
+	long r_p  = PQ.data[r]->ltm + PQ.data[r]->ptm;  // right node priority
 	
-	if (l <= count && l_p > i_p) {
+	if (l <= PQ.count && l_p > i_p) {
 		maxIndex = l;
 	}
 	
-	if (r <= size && r_p > i_p) {
+	if (r <= PQ.count && r_p > i_p) {
 		maxIndex = r;
 	}
 
 	// If i not same as maxIndex
 	if (i != maxIndex) {
-		swap(PQ[i], PQ[maxIndex]);
-		shiftDown(maxIndex);
+		swap(PQ.data[i], PQ.data[maxIndex]);
+		siftDown(maxIndex);
 	}
 }
 
@@ -108,9 +132,9 @@ void siftDown(int i)
  */
 void PQenqueue(Car *car){
 	if(!PQisFull()){	
-		PQ.data[count] = car;
+		PQ.data[PQ.count] = car;
 		PQ.count += 1;
-		siftUp(count);
+		siftUp(PQ.count);
 	}
 }
 
@@ -122,11 +146,11 @@ Car* PQserve(){
 	if(PQisEmpty())
 		return NULL;
 	
-	Car *temp = PQ[0];
+	Car *temp = PQ.data[0];
 	// Replace the value at the root
 	// with the last leaf
-	PQ[0] = PQ[count];
-	count --;
+	PQ.data[0] = PQ.data[PQ.count];
+	PQ.count --;
 
 	// Shift down the replaced element
 	// to maintain the heap property
