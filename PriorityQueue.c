@@ -109,15 +109,17 @@ void siftDown(int i)
 	
 	// priorities
 	long i_p  = PQ.data[i]->ltm + PQ.data[i]->ptm;  // current node priority
-	long l_p  = PQ.data[l]->ltm + PQ.data[l]->ptm;  // left node priority
-	long r_p  = PQ.data[r]->ltm + PQ.data[r]->ptm;  // right node priority
 	
-	if (l <= PQ.count && l_p > i_p) {
-		maxIndex = l;
+	if (l < PQ.count) {
+		long l_p  = PQ.data[l]->ltm + PQ.data[l]->ptm;  // left node priority
+		if (l_p > i_p)
+			maxIndex = l;
 	}
 	
-	if (r <= PQ.count && r_p > i_p) {
-		maxIndex = r;
+	if (r < PQ.count) {
+		long r_p  = PQ.data[r]->ltm + PQ.data[r]->ptm;  // right node priority
+		if (r_p > i_p)
+			maxIndex = r;
 	}
 
 	// If i not same as maxIndex
@@ -152,12 +154,13 @@ Car* PQserve(){
 	Car *temp = PQ.data[0];
 	// Replace the value at the root
 	// with the last leaf
-	PQ.data[0] = PQ.data[PQ.count];
 	PQ.count --;
+	PQ.data[0] = PQ.data[PQ.count];
 
 	// Shift down the replaced element
 	// to maintain the heap property
 	siftDown(0);
+	PQ.data[PQ.count] = NULL;
 	return temp;
 }
 
