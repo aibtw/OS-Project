@@ -36,6 +36,7 @@ float expnum;					// expnum: expected number of arrivals
 
 
 pthread_mutex_t plk;
+pthread_mutex_t Qlock;
 
 void initializer();
 void input_handler(int argc, char *argv[]);
@@ -61,14 +62,17 @@ void *in_valets_t(void *param){
 		// fetch a car from the queue to the park
 		if(!QisEmpty()){
 			// Critical Section Beginning
+			pthread_mutex_lock(&Qlock);
 			Car *c = Qserve();
+			pthread_mutex_unlock(&Qlock);
 			usleep(getRandom(0,200000)); // pause in the critical section
 			sqw += time(NULL) - c->atm;
 			nm++;
 			c->vid = id;
 			usleep(getRandom(0, 1000000)); // pause before parking
 			c->ptm = time(NULL);
-			PQenqueue(c);
+			if(!PQisFull())
+				PQenqueue(c);
 			usleep(getRandom(0, 1000000)); // pause before parking
 		}
 	}
@@ -83,7 +87,7 @@ void *out_valets_t(void *param){
 
 // Interrupt handler
 void int_handler(){
-	printf("Receiveed Inturrept! Exiting ... \n");
+	printf("\nReceiveed Inturrept! Exiting ... \n");
 	Qfree();
 	PQfree();
 	exit(0);
@@ -162,6 +166,7 @@ int main(int argc, char *argv[]){
 			CarInit(c);				// Initialize car
 			++nc;					// increment number of created cars
 			printf("Car created, ID = %d\n", (*c).cid);
+			pthread_mutex_lock(&Qlock);
 			if(QisFull()){
 				printf("Queue is full. Reject the car\n"); // Reject the car
 				rf++;				// increament number of rejected cars
@@ -169,7 +174,7 @@ int main(int argc, char *argv[]){
 				c = NULL;
 			}
 			else Qenqueue(c);			// Enqueue the car
-			
+			pthread_mutex_unlock(&Qlock);
 			// NOTE: I think we shouldn't update stats here, but it is necessary (otherwise
 			// duplicate id will be given). So, i guess we must have a lock at ++rf so that 
 			// it only increments if updateStates is done. 
@@ -195,6 +200,13 @@ void initializer(){
 	expnum = EXP_CARS;
 	oc = 0, nc = 0, pk = 0, rf = 0, nm = 0, sqw = 0, spt = 0, ut = 0;
 	srand(time(0));
+	
+	if (pthread_mutex_init(&Qlock, NULL) != 0) {
+		printf("\n mutex init has failed\n");
+		exit(0);
+	}
+	
+
 }
 
 
