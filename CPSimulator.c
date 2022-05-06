@@ -4,6 +4,7 @@
 #include<unistd.h>
 #include<signal.h>
 #include<string.h>
+#include<semaphore.h>
 
 #include"CarPark.h"
 #include"PriorityQueue.h"
@@ -39,6 +40,9 @@ pthread_mutex_t plk;
 pthread_mutex_t Qlock;
 pthread_mutex_t PQlock;
 
+sem_t PQwait; 					// Counting semaphore to wait till PQ isn't full
+
+
 void initializer();
 void input_handler(int argc, char *argv[]);
 int getRandom(int lower, int upper);
@@ -55,29 +59,37 @@ void *monitor(void *args){
 
 // in valets
 void *in_valets_t(void *param){
-	int id = *(int *)param;	// Cast (void *) into (integer *), then get its value
+	int id = *(int *)param;		// Cast (void *) into (integer *), then get its value
 	printf("[in_valets] Thread created with id: %d\n", id);
+	setViState(id, READY);		// in Valet Ready!
 	
 	while(true){
+		setViState(id, READY);			// if yes, change valet state to fetch
 		usleep(1000); // NOTE: CONSIDER REMOVING (put a lock instead to avoid busy waiting)
-		// fetch a car from the queue to the park
-		if(!QisEmpty() && !PQisFull()){
-			// Critical Section Beginning
-			pthread_mutex_lock(&Qlock);
-			Car *c = Qserve();
-			pthread_mutex_unlock(&Qlock);
-			usleep(getRandom(0,200000)); // pause in the critical section
-			sqw += time(NULL) - c->atm;
+		
+		pthread_mutex_lock(&Qlock);		// Lock valets' access to Queue
+		if(!QisEmpty()){			// Check if there are available cars
+			setViState(id, FETCH);		// if yes, change valet state to fetch
+			usleep(getRandom(0,200000)); 	// pause in the critical section
+			Car *c = Qserve();		// Fetch a car from Queue
+			setViCar(id, c);		// Assign this valet to the served car
+			pthread_mutex_unlock(&Qlock);	// Unlock valets' access to Queue
+			sqw += time(NULL) - c->atm;	// Update stats
 			nm++;
-			c->vid = id;
-			usleep(getRandom(0, 1000000)); // pause before parking
-			c->ptm = time(NULL);
-			if(!PQisFull())
-				PQenqueue(c);
-			usleep(getRandom(0, 1000000)); // pause before parking
-		}
-	}
+			c->vid = id;			// Assign vid to the car
 
+
+			setViState(id, WAIT);		// Wait access to park
+			sem_wait(&PQwait);		// 
+			pthread_mutex_lock(&PQlock);
+			setViState(id, MOVE);		// State: Parking the car
+			usleep(getRandom(0, 1000000)); 	// pause before parking
+			c->ptm = time(NULL);		// Set parking time
+			PQenqueue(c);			// Park the car
+			pthread_mutex_unlock(&PQlock);
+		
+		} else pthread_mutex_unlock(&Qlock);	// unlock valets' access to Queue
+	}
 }
 
 // out valets
@@ -86,7 +98,7 @@ void *out_valets_t(void *param){
 	printf("[out_valets] Thread created with id: %d\n", id);
 	while(true){
 		usleep(1000);
-		if (!PQisEmpty()) {				
+		if (!PQisEmpty()) {
 			pthread_mutex_lock(&PQlock);
 			Car *c = PQpeek();
 			if (c->ptm + c->ltm < time(NULL)){
@@ -94,6 +106,7 @@ void *out_valets_t(void *param){
 				printf("Removing...\n");
 				usleep(getRandom(0, 200000)); //pause inside critical section
 				PQserve();
+				sem_post(&PQwait);
 				oc--;
 				spt = spt + time(NULL) - c->ptm;
 				pthread_mutex_unlock(&PQlock);
@@ -228,6 +241,8 @@ void initializer(){
 		printf("\n mutex init has failed\n");
 		exit(0);
 	}
+
+	sem_init(&PQwait, 0, psize);
 
 }
 
