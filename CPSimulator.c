@@ -85,7 +85,9 @@ void *in_valets_t(void *param){
 			usleep(getRandom(0, 1000000)); 	// pause before parking
 			c->ptm = time(NULL);		// Set parking time
 			PQenqueue(c);			// Park the car
-			//sem_post(&PQfull);
+			oc++;
+			pk++;
+			sem_post(&PQfull);		// Increment occupied spaces sem
 			pthread_mutex_unlock(&PQlock);
 		
 		} else pthread_mutex_unlock(&Qlock);	// Q is empty, so unlock valets' access to Queue
@@ -101,24 +103,26 @@ void *out_valets_t(void *param){
 	while(true){
 		setVoState(id, READY);			// out Valet Ready!
 		usleep(1000000);// NOTE: BUSY WAITING !!
-		//sem_wait(&PQfull);
-		if(!PQisEmpty()){
-			pthread_mutex_lock(&PQlock);
-			Car *c = PQpeek();
-			printf("Car at head ID: %d, ltm: %lu, parktime: %lu\n", c->cid, c->ltm, c->ptm);
-			if (c->ptm + c->ltm < time(NULL)){
-				//critical section
-				printf("Removing...\n");
-				usleep(getRandom(0, 200000)); //pause inside critical section
-				PQserve();
-				sem_post(&PQempty);
-				oc--;
-				spt = spt + time(NULL) - c->ptm;
-				pthread_mutex_unlock(&PQlock);
-				usleep(getRandom(0, 1000000)); //pause after unparking a car
-			}
-			else pthread_mutex_unlock(&PQlock);
+		sem_wait(&PQfull);
+		pthread_mutex_lock(&PQlock);
+		Car *c = PQpeek();
+		printf("Car at head ID: %d, ltm: %lu, parktime: %lu\n", c->cid, c->ltm, c->ptm);
+		if (c->ptm + c->ltm < time(NULL)){
+			//critical section
+			printf("Removing...\n");
+			usleep(getRandom(0, 200000)); //pause inside critical section
+			PQserve();
+			sem_post(&PQempty);
+			oc--;
+			spt = spt + time(NULL) - c->ptm;
+			pthread_mutex_unlock(&PQlock);
+			usleep(getRandom(0, 1000000)); //pause after unparking a car
 		}
+		else {
+			pthread_mutex_unlock(&PQlock); 
+			sem_post(&PQfull);
+		}
+		
 	}
 }
 
@@ -215,7 +219,7 @@ int main(int argc, char *argv[]){
 			// NOTE: I think we shouldn't update stats here, but it is necessary (otherwise
 			// duplicate id will be given). So, i guess we must have a lock at ++rf so that 
 			// it only increments if updateStates is done. 
-			updateStats(oc, nc, pk, rf, nm, sqw, spt, ut);
+			//updateStats(oc, nc, pk, rf, nm, sqw, spt, ut);
 		}
 		
 		//while(getchar() != '\n');			// wait for ENTER
