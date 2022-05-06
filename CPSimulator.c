@@ -37,6 +37,7 @@ float expnum;					// expnum: expected number of arrivals
 
 pthread_mutex_t plk;
 pthread_mutex_t Qlock;
+pthread_mutex_t PQlock;
 
 void initializer();
 void input_handler(int argc, char *argv[]);
@@ -60,7 +61,7 @@ void *in_valets_t(void *param){
 	while(true){
 		usleep(1000); // NOTE: CONSIDER REMOVING (put a lock instead to avoid busy waiting)
 		// fetch a car from the queue to the park
-		if(!QisEmpty()){
+		if(!QisEmpty() && !PQisFull()){
 			// Critical Section Beginning
 			pthread_mutex_lock(&Qlock);
 			Car *c = Qserve();
@@ -83,6 +84,24 @@ void *in_valets_t(void *param){
 void *out_valets_t(void *param){
 	int id = *(int *)param;	// Cast (void *) into (integer *), then get its value
 	printf("[out_valets] Thread created with id: %d\n", id);
+	while(true){
+		usleep(1000);
+		if (!PQisEmpty()) {				
+			pthread_mutex_lock(&PQlock);
+			Car *c = PQpeek();
+			if (c->ptm + c->ltm < time(NULL)){
+				//critical section
+				printf("Removing...\n");
+				usleep(getRandom(0, 200000)); //pause inside critical section
+				PQserve();
+				oc--;
+				spt = spt + time(NULL) - c->ptm;
+				pthread_mutex_unlock(&PQlock);
+				usleep(getRandom(0, 1000000)); //pause after the critical section
+			}
+			else pthread_mutex_unlock(&PQlock);
+		}
+	}
 }
 
 // Interrupt handler
@@ -137,12 +156,12 @@ int main(int argc, char *argv[]){
 		*j = i;
 		pthread_create(&inv_tid[i], NULL, in_valets_t, j);
 	}
-	/*for(int i = 0; i<outval; i++){
+	for(int i = 0; i<outval; i++){
 		j = malloc(sizeof(int));
 		*j = i;
-		pthread_create(&outv_tid[i], NULL, out_valets, i);
+		pthread_create(&outv_tid[i], NULL, out_valets_t, j);
 	}
-	*/
+	
 	
 	usleep(100000);
 	free(j);
@@ -181,8 +200,8 @@ int main(int argc, char *argv[]){
 			updateStats(oc, nc, pk, rf, nm, sqw, spt, ut);
 		}
 		
-		while(getchar() != '\n');			// wait for ENTER
-		//sleep(1);
+		//while(getchar() != '\n');			// wait for ENTER
+		sleep(1);
 		//usleep(250000);
 	}
 }
@@ -205,7 +224,10 @@ void initializer(){
 		printf("\n mutex init has failed\n");
 		exit(0);
 	}
-	
+	if (pthread_mutex_init(&PQlock, NULL) != 0) {
+		printf("\n mutex init has failed\n");
+		exit(0);
+	}
 
 }
 
