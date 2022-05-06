@@ -40,8 +40,8 @@ pthread_mutex_t plk;
 pthread_mutex_t Qlock;
 pthread_mutex_t PQlock;
 
-sem_t PQwait; 					// Counting semaphore to wait till PQ isn't full
-
+sem_t PQempty; 					// Counting semaphore to wait till PQ isn't full
+sem_t PQfull;
 
 void initializer();
 void input_handler(int argc, char *argv[]);
@@ -65,7 +65,7 @@ void *in_valets_t(void *param){
 	
 	while(true){
 		setViState(id, READY);			// if yes, change valet state to fetch
-		usleep(1000); // NOTE: CONSIDER REMOVING (put a lock instead to avoid busy waiting)
+		usleep(1000); // NOTE: BUSY WAITING !!
 		
 		pthread_mutex_lock(&Qlock);		// Lock valets' access to Queue
 		if(!QisEmpty()){			// Check if there are available cars
@@ -73,22 +73,22 @@ void *in_valets_t(void *param){
 			usleep(getRandom(0,200000)); 	// pause in the critical section
 			Car *c = Qserve();		// Fetch a car from Queue
 			setViCar(id, c);		// Assign this valet to the served car
-			pthread_mutex_unlock(&Qlock);	// Unlock valets' access to Queue
 			sqw += time(NULL) - c->atm;	// Update stats
 			nm++;
 			c->vid = id;			// Assign vid to the car
-
+			pthread_mutex_unlock(&Qlock);	// Unlock valets' access to Queue
 
 			setViState(id, WAIT);		// Wait access to park
-			sem_wait(&PQwait);		// 
-			pthread_mutex_lock(&PQlock);
+			sem_wait(&PQempty);		// 
+			pthread_mutex_lock(&PQlock);	// Lock access to PQ
 			setViState(id, MOVE);		// State: Parking the car
 			usleep(getRandom(0, 1000000)); 	// pause before parking
 			c->ptm = time(NULL);		// Set parking time
 			PQenqueue(c);			// Park the car
+			//sem_post(&PQfull);
 			pthread_mutex_unlock(&PQlock);
 		
-		} else pthread_mutex_unlock(&Qlock);	// unlock valets' access to Queue
+		} else pthread_mutex_unlock(&Qlock);	// Q is empty, so unlock valets' access to Queue
 	}
 }
 
@@ -96,21 +96,26 @@ void *in_valets_t(void *param){
 void *out_valets_t(void *param){
 	int id = *(int *)param;	// Cast (void *) into (integer *), then get its value
 	printf("[out_valets] Thread created with id: %d\n", id);
+	setVoState(id, READY);				// out Valet Ready!
+	
 	while(true){
-		usleep(1000);
-		if (!PQisEmpty()) {
+		setVoState(id, READY);			// out Valet Ready!
+		usleep(1000000);// NOTE: BUSY WAITING !!
+		//sem_wait(&PQfull);
+		if(!PQisEmpty()){
 			pthread_mutex_lock(&PQlock);
 			Car *c = PQpeek();
+			printf("Car at head ID: %d, ltm: %lu, parktime: %lu\n", c->cid, c->ltm, c->ptm);
 			if (c->ptm + c->ltm < time(NULL)){
 				//critical section
 				printf("Removing...\n");
 				usleep(getRandom(0, 200000)); //pause inside critical section
 				PQserve();
-				sem_post(&PQwait);
+				sem_post(&PQempty);
 				oc--;
 				spt = spt + time(NULL) - c->ptm;
 				pthread_mutex_unlock(&PQlock);
-				usleep(getRandom(0, 1000000)); //pause after the critical section
+				usleep(getRandom(0, 1000000)); //pause after unparking a car
 			}
 			else pthread_mutex_unlock(&PQlock);
 		}
@@ -120,6 +125,7 @@ void *out_valets_t(void *param){
 // Interrupt handler
 void int_handler(){
 	printf("\nReceiveed Inturrept! Exiting ... \n");
+	finish();
 	Qfree();
 	PQfree();
 	exit(0);
@@ -191,10 +197,9 @@ int main(int argc, char *argv[]){
 	Car *c;
 	while(true){
 		n = newCars(0.5); // Get Poisson distributed number of cars (maybe 1, maybe 3, no one knows)
-		printf("Number of new cars: %f\n",n);
 		// Create n cars:
 		for(int i = 0; i<n; i++){
-			c = malloc(sizeof(Car));	// Allocate memory to Car pointer
+			c = malloc(sizeof(Car));		// Allocate memory to Car pointer
 			CarInit(c);				// Initialize car
 			++nc;					// increment number of created cars
 			printf("Car created, ID = %d\n", (*c).cid);
@@ -242,8 +247,8 @@ void initializer(){
 		exit(0);
 	}
 
-	sem_init(&PQwait, 0, psize);
-
+	sem_init(&PQempty, 0, psize);
+	sem_init(&PQfull, 0, 0);
 }
 
 
