@@ -89,6 +89,7 @@ void *in_valets_t(void *param){
 			pk++;
 			sem_post(&PQfull);		// Increment occupied spaces sem
 			pthread_mutex_unlock(&PQlock);
+			printf("PARKED: Car cid: %d, ltm+ptm = %lu\n", c->cid, c->ltm+c->ptm);
 		
 		} else pthread_mutex_unlock(&Qlock);	// Q is empty, so unlock valets' access to Queue
 	}
@@ -106,7 +107,6 @@ void *out_valets_t(void *param){
 		sem_wait(&PQfull);
 		pthread_mutex_lock(&PQlock);
 		Car *c = PQpeek();
-		printf("Car at head ID: %d, ltm: %lu, parktime: %lu\n", c->cid, c->ltm, c->ptm);
 		if (c->ptm + c->ltm < time(NULL)){
 			//critical section
 			printf("Removing...\n");
@@ -185,7 +185,6 @@ int main(int argc, char *argv[]){
 		pthread_create(&outv_tid[i], NULL, out_valets_t, j);
 	}
 	
-	
 	usleep(100000);
 	free(j);
 	
@@ -218,13 +217,23 @@ int main(int argc, char *argv[]){
 			pthread_mutex_unlock(&Qlock);
 			// NOTE: I think we shouldn't update stats here, but it is necessary (otherwise
 			// duplicate id will be given). So, i guess we must have a lock at ++rf so that 
-			// it only increments if updateStates is done. 
-			//updateStats(oc, nc, pk, rf, nm, sqw, spt, ut);
+			// it only increments if updateStates is done.
+			updateStats(oc, nc, pk, rf, nm, sqw, spt, ut);
 		}
 		
-		//while(getchar() != '\n');			// wait for ENTER
-		sleep(1);
+		while(getchar() != '\n');			// wait for ENTER
+		
+
+		//sleep(1);
 		//usleep(250000);
+		
+		// For debugging
+		if(PQ.count != 0){
+			for(int n = 0; n<PQ.count; n++){
+				printf("CID: %d, P = %lu\n", PQ.data[n]->cid, PQ.data[n]->ltm+PQ.data[n]->ptm);
+			}
+		}
+		
 	}
 }
 

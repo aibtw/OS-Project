@@ -65,10 +65,13 @@ void PQclear(){
  * swap two values in PQ.data.
  * =============================================================================
  */
-void swap(Car *a, Car *b) {
-  Car *temp = b;
-  b = a;
-  a = temp;
+void swap(int i, int j) {
+	Car *temp = PQ.data[i];
+	// For debugging
+	printf("swapping %d with %d\n", temp->cid, PQ.data[j]->cid);
+	
+	PQ.data[i] = PQ.data[j];
+	PQ.data[j] = temp;
 }
 
 
@@ -83,9 +86,9 @@ void siftUp(int i)
 		double parent_p = PQ.data[parent]->ltm + PQ.data[parent]->ptm;
 		double i_p = PQ.data[i]->ltm + PQ.data[i]->ptm;
 		
-		if(parent_p < i_p) {
+		if(parent_p > i_p) {
 			// Swap parent and current node
-			swap(PQ.data[parent], PQ.data[i]);
+			swap(parent, i);
 			// Update i to parent of i
 			i = parent;
 			siftUp(i);
@@ -101,7 +104,8 @@ void siftDown(int i)
 {
 	// Parent (current node)
 	int maxIndex = i;
-
+	int maxIndex1 = i;
+	int maxIndex2 = i;
 	// Left Child
 	int l = 2 * i + 1;
 	// Right Child
@@ -110,21 +114,35 @@ void siftDown(int i)
 	// priorities
 	long i_p  = PQ.data[i]->ltm + PQ.data[i]->ptm;  // current node priority
 	
+	
+	long long l_p = 9223372036854775807;
+	long long r_p = 9223372036854775807;
 	if (l < PQ.count) {
-		long l_p  = PQ.data[l]->ltm + PQ.data[l]->ptm;  // left node priority
-		if (l_p > i_p)
-			maxIndex = l;
+		l_p  = PQ.data[l]->ltm + PQ.data[l]->ptm;  // left node priority
+		printf("l_p: %lu\n", l_p);
+		if (l_p < i_p)
+			maxIndex1 = l;
 	}
 	
 	if (r < PQ.count) {
-		long r_p  = PQ.data[r]->ltm + PQ.data[r]->ptm;  // right node priority
-		if (r_p > i_p)
-			maxIndex = r;
+		r_p  = PQ.data[r]->ltm + PQ.data[r]->ptm;  // right node priority
+		printf("r_p: %lu\n", r_p);
+		if (r_p < i_p)
+			maxIndex2 = r;
+		
 	}
-
+	
+	if (r_p < l_p){
+		maxIndex = maxIndex2;
+		printf("Chosen r_p: %lu\n", r_p);
+	}else{
+		maxIndex = maxIndex1;
+		printf("Chosen l_p: %lu over r_p%lu\n", l_p, r_p);
+	}
+	printf("maxIndex = %lu, maxindex1 = %lu, maxindex2 = %lu\n", maxIndex,maxIndex1,maxIndex2);
 	// If i not same as maxIndex
 	if (i != maxIndex) {
-		swap(PQ.data[i], PQ.data[maxIndex]);
+		swap(i, maxIndex);
 		siftDown(maxIndex);
 	}
 }
@@ -156,11 +174,11 @@ Car* PQserve(){
 	// with the last leaf
 	PQ.count --;
 	PQ.data[0] = PQ.data[PQ.count];
-
-	// Shift down the replaced element
+	PQ.data[PQ.count] = NULL;
+	// Sift down the replaced element
 	// to maintain the heap property
 	siftDown(0);
-	PQ.data[PQ.count] = NULL;
+
 	return temp;
 }
 
