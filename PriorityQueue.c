@@ -67,9 +67,6 @@ void PQclear(){
  */
 void swap(int i, int j) {
 	Car *temp = PQ.data[i];
-	// For debugging
-	printf("swapping %d with %d\n", temp->cid, PQ.data[j]->cid);
-	
 	PQ.data[i] = PQ.data[j];
 	PQ.data[j] = temp;
 }
@@ -119,14 +116,12 @@ void siftDown(int i)
 	long long r_p = 9223372036854775807;
 	if (l < PQ.count) {
 		l_p  = PQ.data[l]->ltm + PQ.data[l]->ptm;  // left node priority
-		printf("l_p: %lu\n", l_p);
 		if (l_p < i_p)
 			maxIndex1 = l;
 	}
 	
 	if (r < PQ.count) {
 		r_p  = PQ.data[r]->ltm + PQ.data[r]->ptm;  // right node priority
-		printf("r_p: %lu\n", r_p);
 		if (r_p < i_p)
 			maxIndex2 = r;
 		
@@ -134,12 +129,9 @@ void siftDown(int i)
 	
 	if (r_p < l_p){
 		maxIndex = maxIndex2;
-		printf("Chosen r_p: %lu\n", r_p);
 	}else{
 		maxIndex = maxIndex1;
-		printf("Chosen l_p: %lu over r_p%lu\n", l_p, r_p);
 	}
-	printf("maxIndex = %lu, maxindex1 = %lu, maxindex2 = %lu\n", maxIndex,maxIndex1,maxIndex2);
 	// If i not same as maxIndex
 	if (i != maxIndex) {
 		swap(i, maxIndex);

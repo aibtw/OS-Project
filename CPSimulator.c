@@ -89,7 +89,6 @@ void *in_valets_t(void *param){
 			pk++;
 			sem_post(&PQfull);		// Increment occupied spaces sem
 			pthread_mutex_unlock(&PQlock);
-			printf("PARKED: Car cid: %d, ltm+ptm = %lu\n", c->cid, c->ltm+c->ptm);
 		
 		} else pthread_mutex_unlock(&Qlock);	// Q is empty, so unlock valets' access to Queue
 	}
@@ -229,6 +228,7 @@ int main(int argc, char *argv[]){
 		
 		// For debugging
 		if(PQ.count != 0){
+			printf("========= Contents of the park =========");
 			for(int n = 0; n<PQ.count; n++){
 				printf("CID: %d, P = %lu\n", PQ.data[n]->cid, PQ.data[n]->ltm+PQ.data[n]->ptm);
 			}
