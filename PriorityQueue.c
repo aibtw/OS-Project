@@ -169,7 +169,8 @@ Car* PQserve(){
 	PQ.data[PQ.count] = NULL;
 	// Sift down the replaced element
 	// to maintain the heap property
-	siftDown(0);
+	if(PQ.count != 0)
+		siftDown(0);
 
 	return temp;
 }
