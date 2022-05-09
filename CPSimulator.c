@@ -149,6 +149,7 @@ void *in_valets_t(void *param){
 
 			setViState(id, WAIT);		// Wait access to park
 			sem_wait(&PQempty);		// 
+			if(!TH_FLAG) break;
 			pthread_mutex_lock(&PQlock);	// Lock access to PQ
 			setViState(id, MOVE);		// State: Parking the car
 			usleep(getRandom(0, 1000000)); 	// pause before parking
@@ -209,6 +210,8 @@ void *out_valets_t(void *param){
 			setVoState(id, READY);
 		}
 	}
+	for(int i = 0; i<inval; i++)			// This ensures no out_valets are stuck
+		sem_post(&PQempty); 			// waiting at PQfull, when we exit!
   	time_t tm;
     	time(&tm);
 	printf("out-Valet (id=%d) left ....... %s", id, ctime(&tm));
