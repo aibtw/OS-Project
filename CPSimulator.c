@@ -48,6 +48,8 @@ bool TH_FLAG = true;
 bool MONITOR_FLAG = true;
 
 pthread_t *inv_tid;
+pthread_t *outv_tid;
+pthread_t monitor_tid;
 
 void initializer();
 void input_handler(int argc, char *argv[]);
@@ -114,9 +116,11 @@ void *in_valets_t(void *param){
 		
 		} else pthread_mutex_unlock(&Qlock);	// Q is empty, so unlock valets' access to Queue
 	}
+	for(int i = 0; i<outval; i++)			// This ensures no out_valets are stuck
+		sem_post(&PQfull); 			// waiting at PQfull, when we exit!
 	time_t tm;
     	time(&tm);
-	printf("in-Valet (id=%d) left ... %s", id, ctime(&tm));
+	printf("in-Valet (id=%d) left ........ %s", id, ctime(&tm));
 	pthread_exit(NULL);
 }
 
@@ -130,6 +134,8 @@ void *out_valets_t(void *param){
 		setVoState(id, READY);			// out Valet Ready!
 		usleep(1000000);// NOTE: BUSY WAITING !!
 		sem_wait(&PQfull);
+		if(!TH_FLAG) break; 			// If the threads were waiting at PQfull when flag
+							// inversed, then exit the loop!
 		pthread_mutex_lock(&PQlock);
 		Car *c = PQpeek();
 		if (c->ptm + c->ltm < time(NULL)){
@@ -150,7 +156,7 @@ void *out_valets_t(void *param){
 	}
   	time_t tm;
     	time(&tm);
-	printf("out-Valet (id=%d) left ... %s", id, ctime(&tm));
+	printf("out-Valet (id=%d) left ....... %s", id, ctime(&tm));
 	pthread_exit(NULL);
 }
 
@@ -158,7 +164,7 @@ void *out_valets_t(void *param){
 
 // Interrupt handler
 void int_handler(){
-	printf("\n");
+	printf("\n\n========================================================\n");
 	printf("Receiveed Shutdown signal ... ");
 	print_date();
 	
@@ -168,12 +174,17 @@ void int_handler(){
 	printf("The valets are leaving ...... ");
 	print_date();
 	TH_FLAG = false;
-	sleep(3);
+	for (int i = 0; i<inval; i++)
+		pthread_join(inv_tid[i], NULL);
+	for (int i = 0; i<outval; i++)
+		pthread_join(outv_tid[i], NULL);
 	printf("Done, All valets have left .. ");
 	print_date();
 	
+
+	
 	MONITOR_FLAG = false;
-	usleep(200000);
+	pthread_join(monitor_tid, NULL);
 	printf("Done, Monitor exited ........ ");
 	print_date();
 	
@@ -185,6 +196,8 @@ void int_handler(){
 	finish();
 	Qfree();
 	PQfree();
+	free(outv_tid);
+	free(inv_tid);
 	exit(0);
 }
 
@@ -225,9 +238,9 @@ int main(int argc, char *argv[]){
 	// -------------------------------------------------------------------------------------------------- //
 	// Thread pools
 	//pthread_t inv_tid[inval];
-	pthread_t outv_tid[outval];
+	//pthread_t outv_tid[outval];
 	inv_tid = malloc(sizeof(pthread_t)*inval);
-	
+	outv_tid = malloc(sizeof(pthread_t)*outval);
 	int *j;
 	for(int i = 0; i<inval; i++){
 		j = malloc(sizeof(int));		// j will provide unique id to each valet
@@ -244,7 +257,6 @@ int main(int argc, char *argv[]){
 	free(j);
 	
 	// Monitor thread
-	pthread_t monitor_tid;
 	pthread_create(&monitor_tid, NULL, monitor, NULL);
 	
 	
