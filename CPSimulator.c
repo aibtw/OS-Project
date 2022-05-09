@@ -131,27 +131,34 @@ void *out_valets_t(void *param){
 	setVoState(id, READY);				// out Valet Ready!
 	
 	while(TH_FLAG){
-		setVoState(id, READY);			// out Valet Ready!
-		usleep(1000000);// NOTE: BUSY WAITING !!
+		usleep(1000);// NOTE: BUSY WAITING !!
+		setVoState(id, READY);
 		sem_wait(&PQfull);
 		if(!TH_FLAG) break; 			// If the threads were waiting at PQfull when flag
 							// inversed, then exit the loop!
+		setVoState(id, WAIT);
 		pthread_mutex_lock(&PQlock);
 		Car *c = PQpeek();
 		if (c->ptm + c->ltm < time(NULL)){
 			//critical section
-			printf("Removing...\n");
+			setVoState(id, FETCH);
+			printf("Unparking a car...\n");
 			usleep(getRandom(0, 200000)); //pause inside critical section
-			PQserve();
+			Car *c = PQserve();
+			setVoCar(id, c);
+			setVoState(id, MOVE);
 			sem_post(&PQempty);
 			oc--;
 			spt = spt + time(NULL) - c->ptm;
 			pthread_mutex_unlock(&PQlock);
 			usleep(getRandom(0, 1000000)); //pause after unparking a car
+			setVoState(id, READY);
+			free(c);
 		}
 		else {
 			pthread_mutex_unlock(&PQlock); 
 			sem_post(&PQfull);
+			setVoState(id, READY);
 		}
 	}
   	time_t tm;
@@ -282,9 +289,7 @@ int main(int argc, char *argv[]){
 			}
 			else Qenqueue(c);			// Enqueue the car
 			pthread_mutex_unlock(&Qlock);
-			// NOTE: I think we shouldn't update stats here, but it is necessary (otherwise
-			// duplicate id will be given). So, i guess we must have a lock at ++rf so that 
-			// it only increments if updateStates is done.
+
 			updateStats(oc, nc, pk, rf, nm, sqw, spt, ut);
 		}
 		
