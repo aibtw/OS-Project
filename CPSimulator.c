@@ -35,27 +35,27 @@ int psize, inval, outval, qsize;		// psize: Park Capacity
 						// qsize: capacity of arrival queue
 float expnum;					// expnum: expected number of arrivals
 
-int in_transition;
+int in_transition;				// How many cars in transition (a valet has aquired it)
 
-time_t start_time;
+time_t start_time;				// Simulator start time
 
-pthread_mutex_t plk;
-pthread_mutex_t Qlock;
-pthread_mutex_t PQlock;
+pthread_mutex_t plk;				// required by GUI
+pthread_mutex_t Qlock;				// A lock for arrival Queue (Q)
+pthread_mutex_t PQlock;				// A lock for the pqrk (PQ)
 
 sem_t PQempty; 					// Counting semaphore to wait till PQ isn't full
 sem_t PQfull;
 
-bool TH_FLAG = true;
-bool MONITOR_FLAG = true;
+bool TH_FLAG = true;				// Valets thread flag. Valets leave their loop when this is false.
+bool MONITOR_FLAG = true;			// Monitor thread flag. Monitor exits its loop when this is false.
 
-pthread_t *inv_tid;
-pthread_t *outv_tid;
-pthread_t monitor_tid;
+pthread_t *inv_tid;				// tids for in-valets threads
+pthread_t *outv_tid;				// tids for out-valets threads
+pthread_t monitor_tid;				// tid for monitor thread
 
-void initializer();
-void input_handler(int argc, char *argv[]);
-int getRandom(int lower, int upper);
+void initializer();				// Function that handles initializing variabels at program start
+void input_handler(int argc, char *argv[]);	// handles command line arguments input
+int getRandom(int lower, int upper);		// returns random number between two limits.
 
 // ========================================================================================================= //
 void print_date(){
@@ -211,6 +211,8 @@ void int_handler(){
 	PQfree();
 	free(outv_tid);
 	free(inv_tid);
+	pthread_mutex_destroy(&PQlock);
+	pthread_mutex_destroy(&Qlock);
 	exit(0);
 }
 
