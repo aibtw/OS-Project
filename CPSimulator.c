@@ -77,8 +77,6 @@ int psize, inval, outval, qsize;		// psize: Park Capacity
 						// qsize: capacity of arrival queue
 float expnum;					// expnum: expected number of arrivals
 
-int in_transition;				// How many cars in transition (a valet has aquired it)
-
 time_t start_time;				// Simulator start time
 time_t end_time;				// Simulator end time
 
@@ -101,18 +99,26 @@ void input_handler(int argc, char *argv[]);	// handles command line arguments in
 int getRandom(int lower, int upper);		// returns random number between two limits.
 
 // ========================================================================================================= //
+/* A function to print the current time and date
+ * inputs: None
+ * outputs: None
+ *
+ * Author: Al-fahad Felemban
+ *
+ */
 void print_date(){
   	time_t tm;
     	time(&tm);
     	printf("%s", ctime(&tm));
 }
 
-void print_stats(){
-	printf("\npark capacity: %d \narrival queue size: %d\n",psize,qsize);
-	printf("number of in_valets was: %d \nnumber of out_valets was: %d\n",inval, outval);
-	printf("Expected arrivales was: %f\n", expnum);
-}
-
+/* A function to be run by the monitor thread, it will update stats for GUI
+ * inputs: Command line arguments
+ * outputs: none
+ *
+ * Author: Al-fahad Felemban
+ *
+ */
 // Monitor thread: updates stats and displays the GUI.
 void *monitor(void *args){
 	while(MONITOR_FLAG){
@@ -126,7 +132,13 @@ void *monitor(void *args){
 	pthread_exit(NULL);
 }
 
-// in valets
+/* A function to be run by the in_valet thread, it will move cars from the arrival queue to the parking queue
+ * inputs: unique thread ID
+ * outputs: None
+ *
+ * Author: Ahmed Patwa
+ *
+ */
 void *in_valets_t(void *param){
 	int id = *(int *)param;		// Cast (void *) into (integer *), then get its value
 	printf("[in_valets] Thread created with id: %d\n", id);
@@ -142,7 +154,6 @@ void *in_valets_t(void *param){
 			usleep(getRandom(0,200000)); 	// pause in the critical section
 			Car *c = Qserve();		// Fetch a car from Queue
 			setViCar(id, c);		// Assign this valet to the served car
-			in_transition ++;		// A car is in transition
 			sqw += time(NULL) - c->atm;	// Update stats
 			nm++;
 			c->vid = id;			// Assign vid to the car
@@ -157,7 +168,6 @@ void *in_valets_t(void *param){
 			usleep(getRandom(0, 1000000)); 	// pause before parking
 			c->ptm = time(NULL);		// Set parking time
 			PQenqueue(c);			// Park the car
-			in_transition --;		// The car is not in transition
 			oc++;
 			pk++;
 			sem_post(&PQfull);		// Increment occupied spaces sem
@@ -173,7 +183,13 @@ void *in_valets_t(void *param){
 	pthread_exit(NULL);
 }
 
-// out valets
+/* A function to be run by the out_valet thread, it will remove cars from the parking queue
+ * inputs: unique thread ID
+ * outputs: None
+ *
+ * Author: Amro Batwa
+ *
+*/
 void *out_valets_t(void *param){
 	int id = *(int *)param;	// Cast (void *) into (integer *), then get its value
 	printf("[out_valets] Thread created with id: %d\n", id);
@@ -196,14 +212,12 @@ void *out_valets_t(void *param){
 			Car *c = PQserve();
 			printf("cid: %d, Priority value: %lu\n", c->cid, c->ptm + c->ltm);
 			setVoCar(id, c);
-			in_transition ++;
 			setVoState(id, MOVE);
 			sem_post(&PQempty);
 			oc--;
 			spt = spt + time(NULL) - c->ptm;
 			pthread_mutex_unlock(&PQlock);
 			setVoState(id, READY);
-			in_transition --;
 			usleep(getRandom(0, 1000000)); //pause after unparking a car
 			free(c);
 		}
@@ -214,7 +228,7 @@ void *out_valets_t(void *param){
 		}
 	}
 	for(int i = 0; i<inval; i++)			// This ensures no out_valets are stuck
-		sem_post(&PQempty); 			// waiting at PQfull, when we exit!
+		sem_post(&PQempty); 			// waiting at PQfull when we exit!
   	time_t tm;
     	time(&tm);
 	printf("out-Valet (id=%d) left ....... %s", id, ctime(&tm));
@@ -223,7 +237,13 @@ void *out_valets_t(void *param){
 
 
 
-// Interrupt handler
+/* A function to handle user-issued interrupt signal
+ * inputs: None
+ * outputs: None
+ *
+ * Author: Al-Fahad Felemban
+ *
+ */
 void int_handler(){
 	printf("\n\n========================================================\n");
 	printf("Receiveed Shutdown signal ... ");
@@ -254,11 +274,24 @@ void int_handler(){
 	printf("\n");
 	
 	printf("Simulator started at:         %s", ctime(&start_time));
-	print_stats();
+	
+	printf("\npark capacity: %d \narrival queue size: %d\n",psize,qsize);
+	printf("number of in_valets was: %d \nnumber of out_valets was: %d\n",inval, outval);
+	printf("Expected arrivales was: %f\n", expnum);
 	
 	printf("\n\nSimulator stopped at:         %s", ctime(&end_time));
-
-	printf("Simulation was excuted for:   %ds\n", end_time - start_time);
+	int run_time = end_time - start_time;
+	printf("Simulation was excuted for:   %ds\n", run_time);
+	printf("Total processed cars number:  %d\n", nc);
+	printf("Total turned-away cars:       %d\n", rf);
+	printf("Number of cars in transit:    %d\n", nm);
+	printf("Number of cars still queued:  %d\n", Qsize());
+	printf("Number of cars still parked:  %d\n", PQsize());
+	
+	printf("average queue waiting time:   %d s \n", sqw);
+	printf("Average parking time:         %d s \n", spt);
+	printf("park utilization percentage:  %f % \n", (double) spt/(psize*run_time) * 100);
+	printf("\n");
 	
 	finish();
 	Qfree();
@@ -270,6 +303,13 @@ void int_handler(){
 	exit(0);
 }
 
+/* A function to generate random numbers
+ * inputs: lower integer, upper integer
+ * outputs: Random number number in range (lower - upper)
+ *
+ * Author: Amro Batwa
+ *
+ */
 int getRandom(int lower, int upper) {
 	int num = (rand()%(upper-lower +1 )) + lower;
 	return num;
@@ -278,7 +318,13 @@ int getRandom(int lower, int upper) {
 
 
 // ========================================================================================================= //
-  
+ /* A main to run the program
+ * inputs: argc, argv[]
+ * outputs: none
+ *
+ * Author: Al-fahad Felemban
+ *
+ */
 int main(int argc, char *argv[]){
 	// Initialize global variables to their default values.
 	initializer();
@@ -355,13 +401,8 @@ int main(int argc, char *argv[]){
 			updateStats(oc, nc, pk, rf, nm, sqw, spt, ut);
 		}
 		
-		//while(getchar() != '\n');			// wait for ENTER
-		
-
 		sleep(1);
-		//usleep(250000);
 		
-		// For debugging
 		if(PQ.count != 0){
 			printf("========= Contents of the park =========\n");
 			for(int n = 0; n<PQ.count; n++){
@@ -376,7 +417,13 @@ int main(int argc, char *argv[]){
 
 // ========================================================================================================= //
 
-
+/* A function to initialize default values.
+ * inputs: None
+ * outputs: None
+ *
+ * Author: Amro Batwa
+ *
+ */
 void initializer(){
 	time(&start_time);
 	// initialization of inputs to default values
@@ -401,7 +448,13 @@ void initializer(){
 	sem_init(&PQfull, 0, 0);
 }
 
-
+/* A function to read command line arguments and pass them to global variables.
+ * inputs: argc, argv
+ * outputs: None
+ *
+ * Author: Ahmed Patwa
+ *
+ */
 void input_handler(int argc, char *argv[]){
 	int temp_in;
 	
