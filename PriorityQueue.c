@@ -7,7 +7,7 @@
  * The priority of this queue is based on the waiting time of 
  * each car which is defined as (parking time + stay time).
  *
- * Author Ahmed Patwa
+ * Author Ahmed Patwa | Amro Batwa
  * Version 1.00 2022/04/30
  *
  */
