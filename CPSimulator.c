@@ -35,6 +35,7 @@ int psize, inval, outval, qsize;		// psize: Park Capacity
 						// qsize: capacity of arrival queue
 float expnum;					// expnum: expected number of arrivals
 
+time_t start_time;
 
 pthread_mutex_t plk;
 pthread_mutex_t Qlock;
@@ -43,18 +44,39 @@ pthread_mutex_t PQlock;
 sem_t PQempty; 					// Counting semaphore to wait till PQ isn't full
 sem_t PQfull;
 
+bool TH_FLAG = true;
+bool MONITOR_FLAG = true;
+
+pthread_t *inv_tid;
+
 void initializer();
 void input_handler(int argc, char *argv[]);
 int getRandom(int lower, int upper);
 
 // ========================================================================================================= //
+void print_date(){
+  	time_t tm;
+    	time(&tm);
+    	printf("%s", ctime(&tm));
+}
+
+void print_stats(){
+	printf("\npark capacity: %d \narrival queue size: %d\n",psize,qsize);
+	printf("number of in_valets was: %d \nnumber of out_valets was: %d\n",inval, outval);
+	printf("Expected arrivales was: %d\n", expnum);
+}
+
 // Monitor thread: updates stats and displays the GUI.
 void *monitor(void *args){
-	while(true){
+	while(MONITOR_FLAG){
 		updateStats(oc, nc, pk, rf, nm, sqw, spt, ut);
 		show();
 		usleep(100000);
 	}
+	time_t tm;
+    	time(&tm);
+	printf("monitor thread exiting ...... %s", ctime(&tm));
+	pthread_exit(NULL);
 }
 
 // in valets
@@ -63,7 +85,7 @@ void *in_valets_t(void *param){
 	printf("[in_valets] Thread created with id: %d\n", id);
 	setViState(id, READY);		// in Valet Ready!
 	
-	while(true){
+	while(TH_FLAG){
 		setViState(id, READY);			// if yes, change valet state to fetch
 		usleep(1000); // NOTE: BUSY WAITING !!
 		
@@ -92,6 +114,10 @@ void *in_valets_t(void *param){
 		
 		} else pthread_mutex_unlock(&Qlock);	// Q is empty, so unlock valets' access to Queue
 	}
+	time_t tm;
+    	time(&tm);
+	printf("in-Valet (id=%d) left ... %s", id, ctime(&tm));
+	pthread_exit(NULL);
 }
 
 // out valets
@@ -100,7 +126,7 @@ void *out_valets_t(void *param){
 	printf("[out_valets] Thread created with id: %d\n", id);
 	setVoState(id, READY);				// out Valet Ready!
 	
-	while(true){
+	while(TH_FLAG){
 		setVoState(id, READY);			// out Valet Ready!
 		usleep(1000000);// NOTE: BUSY WAITING !!
 		sem_wait(&PQfull);
@@ -121,13 +147,41 @@ void *out_valets_t(void *param){
 			pthread_mutex_unlock(&PQlock); 
 			sem_post(&PQfull);
 		}
-		
 	}
+  	time_t tm;
+    	time(&tm);
+	printf("out-Valet (id=%d) left ... %s", id, ctime(&tm));
+	pthread_exit(NULL);
 }
+
+
 
 // Interrupt handler
 void int_handler(){
-	printf("\nReceiveed Inturrept! Exiting ... \n");
+	printf("\n");
+	printf("Receiveed Shutdown signal ... ");
+	print_date();
+	
+	printf("Car park is shutting down ... ");
+	print_date();
+	
+	printf("The valets are leaving ...... ");
+	print_date();
+	TH_FLAG = false;
+	sleep(3);
+	printf("Done, All valets have left .. ");
+	print_date();
+	
+	MONITOR_FLAG = false;
+	usleep(200000);
+	printf("Done, Monitor exited ........ ");
+	print_date();
+	
+	printf("\n");
+	
+	printf("Simulator started at:         %s", ctime(&start_time));
+	print_stats();
+	
 	finish();
 	Qfree();
 	PQfree();
@@ -170,8 +224,10 @@ int main(int argc, char *argv[]){
 	
 	// -------------------------------------------------------------------------------------------------- //
 	// Thread pools
-	pthread_t inv_tid[inval];
+	//pthread_t inv_tid[inval];
 	pthread_t outv_tid[outval];
+	inv_tid = malloc(sizeof(pthread_t)*inval);
+	
 	int *j;
 	for(int i = 0; i<inval; i++){
 		j = malloc(sizeof(int));		// j will provide unique id to each valet
@@ -228,7 +284,7 @@ int main(int argc, char *argv[]){
 		
 		// For debugging
 		if(PQ.count != 0){
-			printf("========= Contents of the park =========");
+			printf("========= Contents of the park =========\n");
 			for(int n = 0; n<PQ.count; n++){
 				printf("CID: %d, P = %lu\n", PQ.data[n]->cid, PQ.data[n]->ltm+PQ.data[n]->ptm);
 			}
@@ -242,6 +298,7 @@ int main(int argc, char *argv[]){
 
 
 void initializer(){
+	time(&start_time);
 	// initialization of inputs to default values
 	psize = PARK_SIZE;
 	inval = IN_VALETS;
