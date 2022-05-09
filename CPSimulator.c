@@ -35,6 +35,8 @@ int psize, inval, outval, qsize;		// psize: Park Capacity
 						// qsize: capacity of arrival queue
 float expnum;					// expnum: expected number of arrivals
 
+int in_transition;
+
 time_t start_time;
 
 pthread_mutex_t plk;
@@ -97,6 +99,7 @@ void *in_valets_t(void *param){
 			usleep(getRandom(0,200000)); 	// pause in the critical section
 			Car *c = Qserve();		// Fetch a car from Queue
 			setViCar(id, c);		// Assign this valet to the served car
+			in_transition ++;		// A car is in transition
 			sqw += time(NULL) - c->atm;	// Update stats
 			nm++;
 			c->vid = id;			// Assign vid to the car
@@ -109,6 +112,7 @@ void *in_valets_t(void *param){
 			usleep(getRandom(0, 1000000)); 	// pause before parking
 			c->ptm = time(NULL);		// Set parking time
 			PQenqueue(c);			// Park the car
+			in_transition --;		// The car is not in transition
 			oc++;
 			pk++;
 			sem_post(&PQfull);		// Increment occupied spaces sem
@@ -146,13 +150,15 @@ void *out_valets_t(void *param){
 			usleep(getRandom(0, 200000)); //pause inside critical section
 			Car *c = PQserve();
 			setVoCar(id, c);
+			in_transition ++;
 			setVoState(id, MOVE);
 			sem_post(&PQempty);
 			oc--;
 			spt = spt + time(NULL) - c->ptm;
 			pthread_mutex_unlock(&PQlock);
-			usleep(getRandom(0, 1000000)); //pause after unparking a car
 			setVoState(id, READY);
+			in_transition --;
+			usleep(getRandom(0, 1000000)); //pause after unparking a car
 			free(c);
 		}
 		else {
