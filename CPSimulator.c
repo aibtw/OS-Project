@@ -133,7 +133,7 @@ void *in_valets_t(void *param){
 	
 	while(TH_FLAG){
 		setViState(id, READY);			// if yes, change valet state to fetch
-		usleep(1000); // NOTE: BUSY WAITING !!
+		usleep(10000);
 		
 		pthread_mutex_lock(&Qlock);		// Lock valets' access to Queue
 		if(!QisEmpty()){			// Check if there are available cars
@@ -148,8 +148,9 @@ void *in_valets_t(void *param){
 			pthread_mutex_unlock(&Qlock);	// Unlock valets' access to Queue
 
 			setViState(id, WAIT);		// Wait access to park
-			sem_wait(&PQempty);		// 
-			if(!TH_FLAG) break;
+			sem_wait(&PQempty);		// if the queue is full, wait
+			if(!TH_FLAG) break;		// if the flag flipped while waiting,
+							// then leave the loop to exit
 			pthread_mutex_lock(&PQlock);	// Lock access to PQ
 			setViState(id, MOVE);		// State: Parking the car
 			usleep(getRandom(0, 1000000)); 	// pause before parking
@@ -178,7 +179,7 @@ void *out_valets_t(void *param){
 	setVoState(id, READY);				// out Valet Ready!
 	
 	while(TH_FLAG){
-		usleep(1000);// NOTE: BUSY WAITING !!
+		usleep(10000);
 		setVoState(id, READY);
 		sem_wait(&PQfull);
 		if(!TH_FLAG) break; 			// If the threads were waiting at PQfull when flag
@@ -189,9 +190,10 @@ void *out_valets_t(void *param){
 		if (c->ptm + c->ltm < time(NULL)){
 			//critical section
 			setVoState(id, FETCH);
-			printf("Unparking a car...\n");
+			printf("Unparking a car... : ");
 			usleep(getRandom(0, 200000)); //pause inside critical section
 			Car *c = PQserve();
+			printf("cid: %d, Priority value: %lu\n", c->cid, c->ptm + c->ltm);
 			setVoCar(id, c);
 			in_transition ++;
 			setVoState(id, MOVE);
@@ -346,18 +348,19 @@ int main(int argc, char *argv[]){
 			updateStats(oc, nc, pk, rf, nm, sqw, spt, ut);
 		}
 		
-		while(getchar() != '\n');			// wait for ENTER
+		//while(getchar() != '\n');			// wait for ENTER
 		
 
-		//sleep(1);
+		sleep(1);
 		//usleep(250000);
 		
 		// For debugging
 		if(PQ.count != 0){
 			printf("========= Contents of the park =========\n");
 			for(int n = 0; n<PQ.count; n++){
-				printf("CID: %d, P = %lu\n", PQ.data[n]->cid, PQ.data[n]->ltm+PQ.data[n]->ptm);
+				printf("CID: %d, Priority value = %lu\n", PQ.data[n]->cid, PQ.data[n]->ltm+PQ.data[n]->ptm);
 			}
+			printf("\n");
 		}
 		
 	}
@@ -401,7 +404,7 @@ void input_handler(int argc, char *argv[]){
 		temp_in = atoi(argv[1]);
 		if (temp_in > PARK_LIMIT)
 			psize = PARK_LIMIT;
-		else if (temp_in < PARK_LIMIT)
+		else if (temp_in < PARK_MLIMIT)
 			psize = PARK_MLIMIT;
 		else
 			psize = temp_in;
@@ -430,21 +433,21 @@ void input_handler(int argc, char *argv[]){
 	{
 		temp_in = atoi(argv[4]);
 		if (temp_in > QUEUE_LIMIT)
-			outval = QUEUE_LIMIT;
+			qsize = QUEUE_LIMIT;
 		else if (temp_in < QUEUE_MLIMIT)
-			outval = QUEUE_MLIMIT;
+			qsize = QUEUE_MLIMIT;
 		else
-			outval = temp_in;
+			qsize = temp_in;
 	}
 	if (argc > 5)
 	{
-		temp_in = atof(argv[5]);
-		if (temp_in > EXP_LIMIT)
-			psize = EXP_LIMIT;
-		else if (temp_in < EXP_MLIMIT)
-			psize = EXP_MLIMIT;
+		double temp_in1 = atof(argv[5]);
+		if (temp_in1 > EXP_LIMIT)
+			expnum = EXP_LIMIT;
+		else if (temp_in1 < EXP_MLIMIT)
+			expnum = EXP_MLIMIT;
 		else
-			psize = temp_in;
+			expnum = temp_in1;
 	}
 }
 
