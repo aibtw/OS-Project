@@ -61,14 +61,14 @@
 
 
 // Statistical variables
-int oc, nc, pk, rf, nm, sqw, spt, ut;  		// oc: Number of Occupied slots
+int oc, nc, pk, rf, nm, sqw, spt;  		// oc: Number of Occupied slots
 						// nc: Total created
 						// pk: total parked
 						// rf: total refused
 						// nm: Currently Aquired by in-valets
 						// sqw: sum of car waiting times in arrival queue
 						// spt: sum of car parking times
-						// ut: current park utilization
+float ut;					// ut: current park utilization
 
 // input variables
 int psize, inval, outval, qsize;		// psize: Park Capacity
@@ -76,6 +76,8 @@ int psize, inval, outval, qsize;		// psize: Park Capacity
 						// outval: number of out-valets
 						// qsize: capacity of arrival queue
 float expnum;					// expnum: expected number of arrivals
+
+int run_time;					// Running time of simulator
 
 time_t start_time;				// Simulator start time
 time_t end_time;				// Simulator end time
@@ -122,6 +124,8 @@ void print_date(){
 // Monitor thread: updates stats and displays the GUI.
 void *monitor(void *args){
 	while(MONITOR_FLAG){
+		run_time = time(NULL)-start_time;
+		ut = (float) spt/(psize*run_time) * 100;
 		updateStats(oc, nc, pk, rf, nm, sqw, spt, ut);
 		show();
 		usleep(100000);
@@ -205,7 +209,6 @@ void *out_valets_t(void *param){
 		pthread_mutex_lock(&PQlock);
 		Car *c = PQpeek();
 		if (c->ptm + c->ltm < time(NULL)){
-			//critical section
 			setVoState(id, FETCH);
 			printf("Unparking a car... : ");
 			usleep(getRandom(0, 200000)); //pause inside critical section
@@ -280,7 +283,7 @@ void int_handler(){
 	printf("Expected arrivales was: %f\n", expnum);
 	
 	printf("\n\nSimulator stopped at:         %s", ctime(&end_time));
-	int run_time = end_time - start_time;
+	run_time = end_time - start_time;
 	printf("Simulation was excuted for:   %ds\n", run_time);
 	printf("Total processed cars number:  %d\n", nc);
 	printf("Total turned-away cars:       %d\n", rf);
@@ -288,9 +291,11 @@ void int_handler(){
 	printf("Number of cars still queued:  %d\n", Qsize());
 	printf("Number of cars still parked:  %d\n", PQsize());
 	
-	printf("average queue waiting time:   %d s \n", sqw);
-	printf("Average parking time:         %d s \n", spt);
-	printf("park utilization percentage:  %f % \n", (double) spt/(psize*run_time) * 100);
+	
+	
+	printf("average queue waiting time:   %fs \n", (double) sqw/pk);
+	printf("Average parking time:         %fs \n", (double) spt/pk);
+	printf("park utilization percentage:  %f% \n", (float) spt/(psize*run_time) * 100);
 	printf("\n");
 	
 	finish();
@@ -352,8 +357,6 @@ int main(int argc, char *argv[]){
 	
 	// -------------------------------------------------------------------------------------------------- //
 	// Thread pools
-	//pthread_t inv_tid[inval];
-	//pthread_t outv_tid[outval];
 	inv_tid = malloc(sizeof(pthread_t)*inval);
 	outv_tid = malloc(sizeof(pthread_t)*outval);
 	int *j;
