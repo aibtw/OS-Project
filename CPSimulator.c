@@ -67,7 +67,7 @@ void print_date(){
 void print_stats(){
 	printf("\npark capacity: %d \narrival queue size: %d\n",psize,qsize);
 	printf("number of in_valets was: %d \nnumber of out_valets was: %d\n",inval, outval);
-	printf("Expected arrivales was: %d\n", expnum);
+	printf("Expected arrivales was: %f\n", expnum);
 }
 
 // Monitor thread: updates stats and displays the GUI.
