@@ -80,6 +80,7 @@ float expnum;					// expnum: expected number of arrivals
 int in_transition;				// How many cars in transition (a valet has aquired it)
 
 time_t start_time;				// Simulator start time
+time_t end_time;				// Simulator end time
 
 pthread_mutex_t plk;				// required by GUI
 pthread_mutex_t Qlock;				// A lock for arrival Queue (Q)
@@ -248,10 +249,16 @@ void int_handler(){
 	printf("Done, Monitor exited ........ ");
 	print_date();
 	
+	time(&end_time); 				// record end time of the simulator
+	
 	printf("\n");
 	
 	printf("Simulator started at:         %s", ctime(&start_time));
 	print_stats();
+	
+	printf("\n\nSimulator stopped at:         %s", ctime(&end_time));
+
+	printf("Simulation was excuted for:   %ds\n", end_time - start_time);
 	
 	finish();
 	Qfree();
