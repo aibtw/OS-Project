@@ -1,3 +1,45 @@
+/*
+ * CPSimulator.c
+ *
+ * A program that presents car park simulation. This simulation
+ * is based on header and object files writtin and generated
+ * by Dr Abdulghani Al Qasmi, and others written by the team
+ * This code depends on: 
+ * CarPark.h
+ * PriorityQueue.h
+ * Queue.h
+ * Car.h
+ * and other libraries stated below. 
+ *
+ * use (make) command in linux systems to compile it.
+ *
+ * The software takes 5 optional arguments when run from
+ * the command line, as following:
+ * ./cp [psize, inval, outval, qsize, expnum]
+ * where in between [ ] are optional arguments
+ *
+ * Input Explaination:
+ * 	psize: Capacity of the park [default to 16]
+ * 	inval: number of in-valets [default to 3]
+ * 	outval: number of out-valets [default to 2]
+ * 	qsize: Capacity of arrivals queue [default to 8]
+ * 	expnum: The expected number of arrivals. This is used
+ *		in the Poisson random number generator, according
+ *		to which new arriving cars are created in the 
+ *		main loop. [default 0.05].
+ * 
+ * The simulation then shall start, and can be stopped by
+ * pressing ctrl+c and following the notes on screen. The
+ * simulator will generate cars each second and then the
+ * in-valets will move them from the Queue to the Park. 
+ * They wait until its time for a car to leave, then
+ * out valets move cars out of the park.
+ * 
+ * Authors: Ahmed Patwa - Amro Batwa - Al Fahad Felemban
+ * Version 1.00 - Last updated 2022/05/9
+ *
+ */
+
 #include<stdio.h>
 #include<stdlib.h>
 #include<time.h>
